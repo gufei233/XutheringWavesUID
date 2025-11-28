@@ -31,7 +31,7 @@ git clone https://github.com/Loping151/XutheringWavesUID.git
 > **注意：该插件为[早柚核心(gsuid_core)](https://github.com/Genshin-bots/gsuid_core)
 的扩展，具体安装方式可参考[GenshinUID](https://github.com/KimigaiiWuyi/GenshinUID)**
 >
-> **如果已经是最新版本的`gsuid_core`, 可以直接对bot发送`core安装插件WutheringWavesUID`，然后重启core以应用安装**
+> **如果已经是最新版本的`gsuid_core`, 可以直接对bot发送`core安装插件XutheringWavesUID`，然后重启core以应用安装**
 
 ## 丨其他
 

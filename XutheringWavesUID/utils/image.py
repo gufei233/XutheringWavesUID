@@ -24,6 +24,7 @@ from ..utils.resource.RESOURCE_PATH import (
     CUSTOM_MR_CARD_PATH,
     CUSTOM_MR_BG_PATH,
     ROLE_PILE_PATH,
+    ROLE_BG_PATH,
     SHARE_BG_PATH,
     WEAPON_PATH,
 )
@@ -117,21 +118,45 @@ async def get_random_share_bg_path():
     return SHARE_BG_PATH / path
 
 
-async def get_random_waves_role_pile(char_id: Optional[str] = None):
+async def get_random_waves_role_pile(char_id: Optional[str] = None, force_not_use_custom: bool = False):
     if char_id:
-        return await get_role_pile_old(char_id, custom=True)
+        return await get_role_pile_default(char_id, custom=not force_not_use_custom)
 
     path = random.choice(os.listdir(f"{ROLE_PILE_PATH}"))
     return Image.open(f"{ROLE_PILE_PATH}/{path}").convert("RGBA")
 
-async def get_random_waves_bg(char_id: Optional[str] = None):
-    custom_dir = f"{CUSTOM_MR_BG_PATH}/{char_id}"
-    if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
-        path = random.choice(os.listdir(custom_dir))
-        if path:
-            return Image.open(f"{custom_dir}/{path}").convert("RGBA"), True
-
-    return await get_random_waves_role_pile(char_id), False
+async def get_random_waves_bg(char_id: Optional[str] = None, force_not_use_custom: bool = False):
+    if char_id:
+        custom_dir = f"{CUSTOM_MR_BG_PATH}/{char_id}"
+        if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
+            path = random.choice(os.listdir(custom_dir))
+            if path:
+                return Image.open(f"{custom_dir}/{path}").convert("RGBA"), True
+        else:
+            name = f"{char_id}.webp"
+            path = ROLE_BG_PATH / name
+            if os.path.exists(path):
+                return Image.open(path).convert("RGBA"), True
+        
+    else:
+        bg_list = [
+            f for f in os.listdir(f"{CUSTOM_MR_BG_PATH}") if os.path.isdir(f"{CUSTOM_MR_BG_PATH}/{f}")
+        ]
+        if bg_list:
+            char_id = random.choice(bg_list)
+            custom_dir = f"{CUSTOM_MR_BG_PATH}/{char_id}"
+            if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
+                path = random.choice(os.listdir(custom_dir))
+                if path:
+                    return Image.open(f"{custom_dir}/{path}").convert("RGBA"), True
+                
+        else:
+            name = random.choice(os.listdir(f"{ROLE_BG_PATH}"))
+            path = ROLE_BG_PATH / name
+            if os.path.exists(path):
+                return Image.open(path).convert("RGBA"), True
+            
+    return await get_random_waves_role_pile(char_id, force_not_use_custom), False
 
 async def get_role_pile(
     resource_id: Union[int, str], custom: bool = False
@@ -148,7 +173,7 @@ async def get_role_pile(
     path = ROLE_PILE_PATH / name
     return False, Image.open(path).convert("RGBA")
 
-async def get_role_pile_old(
+async def get_role_pile_default(
     resource_id: Union[int, str], custom: bool = False
 ) -> Image.Image:
     if custom:

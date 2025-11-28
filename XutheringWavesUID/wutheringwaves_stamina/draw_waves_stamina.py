@@ -179,8 +179,17 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         ev.user_id, ev.bot_id, "uid", daily_info.roleId
     )
     pile_id = None
+    force_use_bg = False
+    force_not_use_bg = False
+    force_not_use_custom = False
+    
     if user and user.stamina_bg_value:
-        char_id = char_name_to_char_id(user.stamina_bg_value)
+        logger.info(f"[鸣潮][每日信息]用户自定义体力背景: {user.stamina_bg_value}")
+        force_use_bg = "背景" in user.stamina_bg_value
+        force_not_use_bg = "立绘" in user.stamina_bg_value
+        force_not_use_custom = "官方" in user.stamina_bg_value
+        stamina_bg_value = user.stamina_bg_value.replace("背景", "").replace("立绘", "").replace("官方", "").strip()
+        char_id = char_name_to_char_id(stamina_bg_value)
         if char_id in SPECIAL_CHAR:
             ck = await waves_api.get_self_waves_ck(
                 daily_info.roleId, ev.user_id, ev.bot_id
@@ -206,10 +215,15 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         else:
             pile_id = char_id
     
-    if ShowConfig.get_config("MrUseBG"):
-        pile, has_bg = await get_random_waves_bg(pile_id)
+    if force_use_bg:
+        pile, has_bg = await get_random_waves_bg(pile_id, force_not_use_custom=force_not_use_custom)
+    elif force_not_use_bg:
+        pile = await get_random_waves_role_pile(pile_id, force_not_use_custom=force_not_use_custom)
+        has_bg = False
+    elif ShowConfig.get_config("MrUseBG"):
+        pile, has_bg = await get_random_waves_bg(pile_id, force_not_use_custom=force_not_use_custom)
     else:
-        pile = await get_random_waves_role_pile(pile_id)
+        pile = await get_random_waves_role_pile(pile_id, force_not_use_custom=force_not_use_custom)
         has_bg = False
 
     if ShowConfig.get_config("MrUseBG") and has_bg:
@@ -437,7 +451,12 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     # img.alpha_composite(bar_down, (0, 0))
 
     # info (Main Bar) 粘贴位置 (0, 190) -> (0, 570)
-    img.paste(info, (0, 570), info)
+    # 如果你想模仿 Upstream 的透明度逻辑，可以在这里修改。目前保持不透明
+    if ShowConfig.get_config("MrUseBG") and has_bg:
+         # 移植 Upstream 的透明度逻辑到你的 3x 代码
+        img.paste(info, (0, 570), info.split()[-1].point(lambda x: x * 0.75))
+    else:
+        img.paste(info, (0, 570), info)
     
     # base_info 粘贴位置 (40, 570) -> (120, 1710)
     img.paste(base_info_bg, (120, 1710), base_info_bg)

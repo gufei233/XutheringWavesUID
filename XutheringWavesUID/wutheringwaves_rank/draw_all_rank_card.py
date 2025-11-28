@@ -52,7 +52,7 @@ from ..utils.image import (
     get_attribute,
     get_attribute_effect,
     get_qq_avatar,
-    get_role_pile_old,
+    get_role_pile_default,
     get_square_avatar,
     get_square_weapon,
     get_waves_bg,
@@ -432,7 +432,7 @@ async def draw_all_rank_card(
     img_temp = Image.new("RGBA", char_mask2.size)
     img_temp.alpha_composite(title, (-300, 0))
     # 人物bg
-    pile = await get_role_pile_old(char_id, custom=True)
+    pile = await get_role_pile_default(char_id, custom=True)
     img_temp.alpha_composite(pile, (600, -120))
 
     img_temp2 = Image.new("RGBA", char_mask2.size)

@@ -11,6 +11,7 @@ from .RESOURCE_PATH import (
     ROLE_DETAIL_CHAINS_PATH,
     ROLE_DETAIL_SKILL_PATH,
     ROLE_PILE_PATH,
+    ROLE_BG_PATH,
     SHARE_BG_PATH,
     WEAPON_PATH,
     WUHEN_GUIDE_PATH,
@@ -35,16 +36,14 @@ def get_target_package():
     
     if py_ver not in ['py3.10', 'py3.11', 'py3.12', 'py3.13']:
         logger.error(f"不支持的Python版本: {py_ver}")
+        return ""
     
-    is_android = 'ANDROID_ROOT' in os.environ or 'ANDROID_DATA' in os.environ
-    if is_android:
-        return "android-aarch64-ndk"
-
     if system == 'win32':
         if '64' in machine: 
             return f"win-x86_64-{py_ver}"
         else:
-            logger.error("暂不支持32位Windows")
+            logger.error("暂不支持32位Windows")    
+            return  ""
 
     elif system == 'linux':
         if 'x86_64' in machine:
@@ -53,14 +52,24 @@ def get_target_package():
             return f"linux-aarch64-{py_ver}"
         else:
             logger.error("暂不支持非x86_64架构的Linux")
+            
+    is_android = 'ANDROID_ROOT' in os.environ or 'ANDROID_DATA' in os.environ
+    if is_android:
+        if py_ver == 'py3.12':
+            return "android-aarch64-ndk"
+        else:
+            logger.error("安卓环境仅支持Python 3.12")
+            return  f"linux-x86_64-{py_ver}"
 
     elif system == 'darwin':
         if 'arm64' in machine:
             return f"macos-arm64-{py_ver}"
         elif 'x86_64' in machine:
             logger.error("暂不支持Intel架构的Mac")
+            return  ""
 
-    return f"Error: Unknown system environment ({system} - {machine})"
+    logger.error(f"不支持的操作系统: {system} {machine}")
+    return  f"linux-x86_64-{py_ver}"
 
 PLATFORM = get_target_package()
 
@@ -71,6 +80,7 @@ async def download_all_resource():
             "resource/avatar": AVATAR_PATH,
             "resource/weapon": WEAPON_PATH,
             "resource/role_pile": ROLE_PILE_PATH,
+            "resource/role_bg": ROLE_BG_PATH,
             "resource/role_detail/skill": ROLE_DETAIL_SKILL_PATH,
             "resource/role_detail/chains": ROLE_DETAIL_CHAINS_PATH,
             "resource/share": SHARE_BG_PATH,

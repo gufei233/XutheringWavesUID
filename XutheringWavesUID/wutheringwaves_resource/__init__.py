@@ -20,3 +20,4 @@ async def send_download_resource_msg(bot: Bot, ev: Event):
 async def startup():
     logger.info("[鸣潮] 等待资源下载完成...")
     await download_all_resource()
+    logger.info("[鸣潮] 资源下载完成！完成启动！")

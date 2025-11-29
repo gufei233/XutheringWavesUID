@@ -128,7 +128,7 @@ async def get_random_waves_role_pile(char_id: Optional[str] = None, force_not_us
 async def get_random_waves_bg(char_id: Optional[str] = None, force_not_use_custom: bool = False):
     if char_id:
         custom_dir = f"{CUSTOM_MR_BG_PATH}/{char_id}"
-        if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
+        if not force_not_use_custom and os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
             path = random.choice(os.listdir(custom_dir))
             if path:
                 return Image.open(f"{custom_dir}/{path}").convert("RGBA"), True
@@ -142,7 +142,7 @@ async def get_random_waves_bg(char_id: Optional[str] = None, force_not_use_custo
         bg_list = [
             f for f in os.listdir(f"{CUSTOM_MR_BG_PATH}") if os.path.isdir(f"{CUSTOM_MR_BG_PATH}/{f}")
         ]
-        if bg_list:
+        if not force_not_use_custom and bg_list:
             char_id = random.choice(bg_list)
             custom_dir = f"{CUSTOM_MR_BG_PATH}/{char_id}"
             if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
@@ -164,7 +164,6 @@ async def get_role_pile(
     if custom:
         custom_dir = f"{CUSTOM_CARD_PATH}/{resource_id}"
         if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
-            # logger.info(f'使用自定义角色头像: {resource_id}')
             path = random.choice(os.listdir(custom_dir))
             if path:
                 return True, Image.open(f"{custom_dir}/{path}").convert("RGBA")

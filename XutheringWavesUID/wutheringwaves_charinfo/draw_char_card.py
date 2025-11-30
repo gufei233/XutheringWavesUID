@@ -207,6 +207,7 @@ async def ph_card_draw(
     change_command="",
     enemy_detail: Optional[EnemyDetailData] = None,
 ):
+    
     char_name = role_detail.role.roleName
 
     phantom_temp = Image.new("RGBA", (1200, 1280 + ph_sum_value))

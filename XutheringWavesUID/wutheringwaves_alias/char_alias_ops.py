@@ -85,9 +85,4 @@ async def char_alias_list(char_name: str):
     if not alias_list:
         return f"角色【{char_name}】不存在，请检查名称"
 
-    res = [
-        f"角色{std_char_name}别名列表：",
-        *alias_list,
-    ]
-
-    return "，".join(res)
+    return f"角色{std_char_name}别名列表：" + ", ".join(alias_list)

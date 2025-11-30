@@ -184,6 +184,8 @@ async def get_role_pile_default(
 
     name = f"role_pile_{resource_id}.png"
     path = ROLE_PILE_PATH / name
+    if not os.path.exists(path):
+        path = ROLE_PILE_PATH / "role_pile_1503.png"
     return Image.open(path).convert("RGBA")
 
 

@@ -119,11 +119,13 @@ async def get_cookie(bot: Bot, ev: Event) -> Union[List[str], str]:
         ck = await waves_api.get_self_waves_ck(uid, ev.user_id, ev.bot_id)
         if not ck:
             continue
-        msg.append(f"鸣潮uid: {uid}")
-        msg.append(f"token, did: {waves_user.cookie}, {waves_user.did}")
+        msg.append(f"鸣潮uid: {uid} 的 token 和 did")
+        msg.append(f"添加token {waves_user.cookie}, {waves_user.did}")
         msg.append("--------------------------------")
-
+        
     if not msg:
         return "您当前未绑定token或者token已全部失效\n"
+    
+    msg.append("直接复制并加上前缀即可用于token登录")
 
     return msg

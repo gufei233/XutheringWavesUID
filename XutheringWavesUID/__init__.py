@@ -30,7 +30,7 @@ if 'WutheringWavesUID' in cfg_text and not 'XutheringWavesUID' in cfg_text:
         f.write(cfg_text)
     Path(MAIN_PATH / 'config_backup.json').unlink()
 elif 'WutheringWavesUID' in cfg_text and 'XutheringWavesUID' in cfg_text:
-    logger.warning("同时存在 WutheringWavesUID 和 XutheringWavesUID 配置，可保留老的配置文件后重启")
+    logger.warning("同时存在 WutheringWavesUID 和 XutheringWavesUID 配置，可保留老的配置文件后重启，请自己编辑 gsuid_core/data/config.json 删除冗余配置")
     
 show_cfg_path = MAIN_PATH / 'XutheringWavesUID' / 'show_config.json'
 if Path(show_cfg_path).exists():

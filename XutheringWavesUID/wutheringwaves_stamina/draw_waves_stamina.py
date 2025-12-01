@@ -187,7 +187,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         force_use_bg = "背景" in user.stamina_bg_value
         force_not_use_bg = "立绘" in user.stamina_bg_value
         force_not_use_custom = "官方" in user.stamina_bg_value
-        stamina_bg_value = user.stamina_bg_value.replace("背景", "").replace("立绘", "").replace("官方", "").strip()
+        stamina_bg_value = user.stamina_bg_value.replace("背景", "").replace("立绘", "").replace("官方", "").replace("图", "").strip()
         char_id = char_name_to_char_id(stamina_bg_value)
         if char_id in SPECIAL_CHAR:
             ck = await waves_api.get_self_waves_ck(

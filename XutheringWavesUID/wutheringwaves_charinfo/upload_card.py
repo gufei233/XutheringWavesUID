@@ -88,7 +88,7 @@ async def upload_custom_card(bot: Bot, ev: Event, char: str, target_type: str = 
     upload_images = await get_image(ev)
     if not upload_images:
         return await bot.send(
-            f"[鸣潮] 上传角色{target_type}图失败\n请同时发送图片及其命令\n", at_sender
+            f"[鸣潮] 上传角色{target_type}图失败\n请同时发送图片及其命令\n支持上传的图片类型：面板图/体力图/背景图", at_sender
         )
 
     char_id, char, msg = get_char_id_and_name(char)

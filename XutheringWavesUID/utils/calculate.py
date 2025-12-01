@@ -1,66 +1,40 @@
 from gsuid_core.logger import logger
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Tuple
 
-def calc_phantom_entry(
-    index: int,
-    prop: Any,
-    cost: int,
-    calc_temp: Optional[Dict],
-    attribute_name: str,
-) -> Tuple[float, float]:
+def calc_phantom_entry(**kwargs) -> Tuple[float, float]:
     from .waves_build.calculate import calc_phantom_entry as _func
 
-    return _func(index, prop, cost, calc_temp, attribute_name)
+    return _func(**kwargs)
 
 
-def calc_phantom_score(
-    role_id: Union[str, int],
-    props: List[Any],
-    cost: int,
-    calc_temp: Optional[Dict],
-) -> Tuple[float, str]:
+def calc_phantom_score(**kwargs) -> Tuple[float, str]:
     from .waves_build.calculate import calc_phantom_score as _func
 
-    return _func(role_id, props, cost, calc_temp)
+    return _func(**kwargs)
 
 
-def get_calc_map(
-    phantom_card: Dict,
-    role_name: str,
-    role_id: Union[str, int],
-) -> Dict:
+def get_calc_map(**kwargs) -> Dict:
     from .waves_build.calculate import get_calc_map as _func
 
-    return _func(phantom_card, role_name, role_id)
+    return _func(**kwargs)
 
 
-def get_max_score(
-    cost: int,
-    calc_temp: Optional[Dict],
-) -> Tuple[float, Any]:
+def get_max_score(**kwargs) -> Tuple[float, Any]:
     from .waves_build.calculate import get_max_score as _func
 
-    return _func(cost, calc_temp)
+    return _func(**kwargs)
 
 
-def get_total_score_bg(
-    char_name: str,
-    score: float,
-    calc_temp: Optional[Dict],
-) -> str:
+def get_total_score_bg(**kwargs) -> str:
     from .waves_build.calculate import get_total_score_bg as _func
 
-    return _func(char_name, score, calc_temp)
+    return _func(**kwargs)
 
 
-def get_valid_color(
-    name: str,
-    value: Union[str, float],
-    calc_temp: Optional[Dict],
-) -> Tuple[str, str]:
+def get_valid_color(**kwargs) -> Tuple[str, str]:
     from .waves_build.calculate import get_valid_color as _func
 
-    return _func(name, value, calc_temp)
+    return _func(**kwargs)
 
 # try:
 #     from .waves_build.calculate import *

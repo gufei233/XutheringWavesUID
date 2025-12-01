@@ -75,6 +75,25 @@ def get_level_from_list(ast: int, lst: List) -> int:
 
 
 async def draw_card_help():
+    text = "\n".join(
+        [
+            "如何导入抽卡记录",
+            "",
+            f"使用命令【{PREFIX}导入抽卡链接 + 你复制的内容】即可开始进行抽卡分析",
+            "",
+            "抽卡链接具有有效期，请在有效期内尽快导入",
+        ]
+    )
+    
+    yun = "\n".join(
+        [
+            "云游戏获取方式",
+            "1.复制以下链接到浏览器打开",
+            "https://ga.loping151.site",
+            "2.登录后,依次点击`刷新记录`,`复制记录`按钮",
+        ]
+    )
+
     android = "\n".join(
         [
             "安卓手机获取链接方式",
@@ -85,6 +104,7 @@ async def draw_card_help():
             "\n",
         ]
     )
+    
     ios = "\n".join(
         [
             "苹果手机获取方式",
@@ -97,6 +117,7 @@ async def draw_card_help():
             "\n",
         ]
     )
+    
     pc = "\n".join(
         [
             "PC获取方式",
@@ -109,25 +130,7 @@ async def draw_card_help():
         ]
     )
 
-    yun = "\n".join(
-        [
-            "云游戏获取方式",
-            "1.复制以下链接到浏览器打开",
-            "https://ga.loping151.site",
-            "2.登录后,依次点击`刷新记录`,`复制记录`按钮",
-        ]
-    )
-
-    text = "\n".join(
-        [
-            "如何导入抽卡记录",
-            "",
-            f"使用命令【{PREFIX}导入抽卡链接 + 你复制的内容】即可开始进行抽卡分析",
-            "",
-            "抽卡链接具有有效期，请在有效期内尽快导入",
-        ]
-    )
-    msg = [android, ios, pc, yun, text]
+    msg = [text, yun, android, ios, pc]
     return msg
 
 

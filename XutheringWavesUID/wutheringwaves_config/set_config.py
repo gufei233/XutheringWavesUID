@@ -10,7 +10,7 @@ async def set_waves_user_value(ev: Event, func: str, uid: str, value: str):
     if func in WAVES_USER_MAP:
         status = WAVES_USER_MAP[func]
     else:
-        return "该配置项不存在!\n"
+        return "该配置项不存在!"
     logger.info("[设置{}] uid:{} value: {}".format(func, uid, value))
     if (
         await WavesUser.update_data_by_data(
@@ -19,6 +19,9 @@ async def set_waves_user_value(ev: Event, func: str, uid: str, value: str):
         )
         == 0
     ):
-        return f"设置成功!\n特征码[{uid}]\n当前{func}:{value}\n"
+        if func == "体力背景":
+            return f"设置成功!\n特征码[{uid}]\n当前{func}:{value}\n支持的选项 [角色名](官方)(立绘/背景)"
+        else:
+            return f"设置成功!\n特征码[{uid}]\n当前{func}:{value}"
     else:
-        return "设置失败!\n请检查参数是否正确!\n"
+        return "设置失败!\n请检查参数是否正确!"

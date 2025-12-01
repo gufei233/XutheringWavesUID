@@ -493,7 +493,7 @@ async def draw_slash_rank_list(bot: Bot, ev: Event):
     if not users:
         msg = []
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无无尽排行数据")
-        msg.append(f"请使用【{PREFIX}查询无尽】后再使用此功能！")
+        msg.append(f"请使用【{PREFIX}无尽】后再使用此功能！")
         msg.append("")
         return "\n".join(msg)
 
@@ -501,7 +501,7 @@ async def draw_slash_rank_list(bot: Bot, ev: Event):
     if len(rankInfoList) == 0:
         msg = []
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无无尽排行数据")
-        msg.append(f"请使用【{PREFIX}查询无尽】后再使用此功能！")
+        msg.append(f"请使用【{PREFIX}无尽】后再使用此功能！")
         msg.append("")
         return "\n".join(msg)
 

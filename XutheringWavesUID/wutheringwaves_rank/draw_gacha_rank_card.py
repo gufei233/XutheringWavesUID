@@ -93,14 +93,14 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
     if not users:
         msg = []
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无抽卡排行数据")
-        msg.append(f"请使用【{PREFIX}抽卡】后再使用此功能！")
+        msg.append(f"请使用【{PREFIX}导入抽卡记录】后再使用此功能！")
         return "\n".join(msg)
 
     rankInfoList = await get_all_gacha_rank_info(list(users))
     if len(rankInfoList) == 0:
         msg = []
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无抽卡排行数据")
-        msg.append(f"请使用【{PREFIX}抽卡】后再使用此功能！")
+        msg.append(f"请使用【{PREFIX}导入抽卡记录】后再使用此功能！")
         return "\n".join(msg)
 
     # 按加权抽数排序（分数越低越欧）

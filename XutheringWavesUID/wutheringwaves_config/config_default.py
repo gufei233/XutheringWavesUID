@@ -90,6 +90,11 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "有token才能进排行",
         False,
     ),
+    "GachaRankMin": GsIntConfig(
+        "抽卡排行最小抽数阈值",
+        "抽卡排行中只显示总抽数达到此阈值的玩家",
+        1000
+    ),
     "DelInvalidCookie": GsBoolConfig(
         "每天定时删除无效token",
         "每天定时删除无效token",
@@ -178,5 +183,5 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "验证码提供方appkey",
         "验证码提供方appkey",
         "",
-    ),
+    )
 }

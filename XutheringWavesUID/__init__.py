@@ -4,8 +4,27 @@ from gsuid_core.sv import Plugins
 from pathlib import Path
 from gsuid_core.logger import logger
 import shutil
+import re
 
 Plugins(name="XutheringWavesUID", force_prefix=["ww"], allow_empty_prefix=False)
+
+from gsuid_core.data_store import get_res_path
+DATA_PATH = get_res_path()
+PLAYERS_PATH = DATA_PATH / 'XutheringWavesUID' / 'players'
+BACKUP_PATH = DATA_PATH / 'backup'
+if PLAYERS_PATH.exists():
+    BACKUP_PATH.mkdir(parents=True, exist_ok=True)
+    pattern = re.compile(r'^\d+_\d+$')
+    for item in PLAYERS_PATH.iterdir():
+        if item.is_dir() and pattern.match(item.name):
+            try:
+                backup_item = BACKUP_PATH / item.name
+                if backup_item.exists():
+                    continue
+                shutil.move(str(item), str(backup_item))
+                logger.info(f"[XutheringWavesUID] 已移动错误的players文件夹到备份: {item.name}")
+            except Exception as e:
+                logger.warning(f"[XutheringWavesUID] 移动players文件夹失败 {item.name}: {e}")
 
 if "WutheringWavesUID" in str(Path(__file__)):
     logger.error("请修改插件文件夹名称为 XutheringWavesUID 以支持后续指令更新")

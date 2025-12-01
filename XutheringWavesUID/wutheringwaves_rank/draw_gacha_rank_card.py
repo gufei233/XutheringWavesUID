@@ -23,7 +23,7 @@ from ..utils.image import (
     get_ICON,
     get_waves_bg,
 )
-from ..wutheringwaves_config import PREFIX
+from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..wutheringwaves_gachalog.draw_gachalogs import get_gacha_stats
 from .slash_rank import get_avatar
 
@@ -59,28 +59,33 @@ class GachaRankCard:
         self.gold_total = self.char_gold + self.weapon_gold
 
 
-async def get_all_gacha_rank_info(users: List[WavesBind]) -> List[GachaRankCard]:
+async def get_all_gacha_rank_info(users: List[WavesBind], bot_id: str) -> List[GachaRankCard]:
     """获取所有用户的抽卡排行信息"""
     rankInfoList = []
 
     for user in users:
-        if not user.uid:
+        if not user.user_id:
             continue
 
         try:
-            stats = await get_gacha_stats(user.uid)
+            current_uid = await WavesBind.get_uid_by_game(user.user_id, bot_id)
+            if not current_uid:
+                continue
+
+            stats = await get_gacha_stats(current_uid)
             if not stats:
                 continue
 
-            rankInfo = GachaRankCard(user.user_id, user.uid, stats)
+            rankInfo = GachaRankCard(user.user_id, current_uid, stats)
 
-            # 只显示总抽数 >= 1000 的用户
-            if rankInfo.total_count < 1000:
+            # 获取配置的最小抽数阈值
+            min_pull = WutheringWavesConfig.get_config("GachaRankMin").data
+            if rankInfo.total_count < min_pull:
                 continue
 
             rankInfoList.append(rankInfo)
         except Exception as e:
-            logger.debug(f"获取用户{user.uid}抽卡排行数据失败: {e}")
+            logger.debug(f"获取用户{user.user_id}抽卡排行数据失败: {e}")
             continue
 
     return rankInfoList
@@ -96,7 +101,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
         msg.append(f"请使用【{PREFIX}导入抽卡记录】后再使用此功能！")
         return "\n".join(msg)
 
-    rankInfoList = await get_all_gacha_rank_info(list(users))
+    rankInfoList = await get_all_gacha_rank_info(list(users), ev.bot_id)
     if len(rankInfoList) == 0:
         msg = []
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无抽卡排行数据")

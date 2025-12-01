@@ -17,7 +17,9 @@ sv_list_char_alias = SV("ww角色名别名列表")
     block=True,
 )
 async def handle_add_char_alias(bot: Bot, ev: Event):
-    action = ev.regex_dict.get("action")
+    action = ev.regex_dict.get("action")    
+    if action not in ["添加", "删除"]:
+        return
     char_name = ev.regex_dict.get("name")
     new_alias = ev.regex_dict.get("new_alias")
     if not char_name or not new_alias:

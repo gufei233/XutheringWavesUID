@@ -4,7 +4,7 @@ import shutil
 import ssl
 import time
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import httpx
@@ -19,7 +19,8 @@ from ..utils.image import compress_to_webp
 from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
 from ..utils.resource.constant import SPECIAL_CHAR, SPECIAL_CHAR_ID
 from ..utils.resource.RESOURCE_PATH import CUSTOM_CARD_PATH, CUSTOM_MR_CARD_PATH, CUSTOM_MR_BG_PATH
-
+from ..wutheringwaves_config import WutheringWavesConfig
+    
 CUSTOM_PATH_MAP = {
     "card": CUSTOM_CARD_PATH,
     "bg": CUSTOM_MR_BG_PATH,
@@ -151,9 +152,11 @@ async def get_custom_card_list(bot: Bot, ev: Event, char: str, target_type: str 
         imgs.append(f"{char}{target_type}图id : {hash_id}")
         imgs.append(img)
 
-    # imgs 5个一组
-    for i in range(0, len(imgs), 10):
-        send = imgs[i : i + 10]
+    card_num = WutheringWavesConfig.get_config("CharCardNum").data
+    card_num = max(5, min(card_num, 30))
+    
+    for i in range(0, len(imgs), card_num * 2):
+        send = imgs[i : i + card_num * 2]
         await bot.send(send)
         await asyncio.sleep(0.5)
 
@@ -220,7 +223,7 @@ async def delete_all_custom_card(bot: Bot, ev: Event, char: str, target_type: st
 
 async def compress_all_custom_card(bot: Bot, ev: Event):
     count = 0
-    use_cores = max(os.cpu_count() - 2, 1) # 避免2c服务器卡死
+    use_cores = max(os.cpu_count() - 2 if os.cpu_count() else 0, 1) # 避免2c服务器卡死
     await bot.send(f"[鸣潮] 开始压缩面板、体力、背景图, 使用 {use_cores} 核心")
     
     task_list = []

@@ -281,12 +281,11 @@ async def get_qq_avatar(
     qid: Optional[Union[int, str]] = None,
     avatar_url: Optional[str] = None,
     size: int = 640,
-) -> Image.Image:
+) -> Optional[Image.Image]:
     if qid:
         avatar_url = f"http://q1.qlogo.cn/g?b=qq&nk={qid}&s={size}"
     elif avatar_url is None:
-        # avatar_url = f"https://q1.qlogo.cn/g?b=qq&nk=3399214199&s={size}"
-        return None
+        return None # 并非 QQ 来源
     char_pic = Image.open(BytesIO((await sget(avatar_url)).content)).convert("RGBA")
     return char_pic
 

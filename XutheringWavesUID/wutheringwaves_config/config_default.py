@@ -132,6 +132,12 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "开启可以艾特查询",
         True,
     ),
+    "CharCardNum": GsIntConfig(
+        "面板图列表一条中图片数量",
+        "面板图列表一条中图片数量",
+        5,
+        30,
+    ),
     "KuroUrlProxyUrl": GsStrConfig(
         "库洛域名代理（重启生效）",
         "库洛域名代理（重启生效）",

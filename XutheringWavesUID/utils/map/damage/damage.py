@@ -1,15 +1,15 @@
 from gsuid_core.logger import logger
 
-def check_if_ph_3(**kwargs) -> bool:
+def check_if_ph_3(*args, **kwargs) -> bool:
     from ..waves_build.damage import check_if_ph_3 as _func
 
-    return _func(**kwargs)
+    return _func(*args, **kwargs)
 
 
-def check_if_ph_5(**kwargs) -> bool:
+def check_if_ph_5(*args, **kwargs) -> bool:
     from ..waves_build.damage import check_if_ph_5 as _func
 
-    return _func(**kwargs)
+    return _func(*args, **kwargs)
 
 # try:
 #     from ..waves_build.damage import *

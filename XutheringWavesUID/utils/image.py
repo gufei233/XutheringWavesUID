@@ -104,6 +104,16 @@ WEAPON_RESONLEVEL_COLOR = {
 }
 
 
+def _random_image_from_dir(directory: str) -> Optional[str]:
+    """Return a random image filename from a directory, skipping hidden/non-image files."""
+    valid_files = [
+        f
+        for f in os.listdir(directory)
+        if not f.startswith(".") and f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+    ]
+    return random.choice(valid_files) if valid_files else None
+
+
 def get_ICON():
     return Image.open(ICON)
 
@@ -129,7 +139,7 @@ async def get_random_waves_bg(char_id: Optional[str] = None, force_not_use_custo
     if char_id:
         custom_dir = f"{CUSTOM_MR_BG_PATH}/{char_id}"
         if not force_not_use_custom and os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
-            path = random.choice(os.listdir(custom_dir))
+            path = _random_image_from_dir(custom_dir)
             if path:
                 return Image.open(f"{custom_dir}/{path}").convert("RGBA"), True
         else:
@@ -146,7 +156,7 @@ async def get_random_waves_bg(char_id: Optional[str] = None, force_not_use_custo
             char_id = random.choice(bg_list)
             custom_dir = f"{CUSTOM_MR_BG_PATH}/{char_id}"
             if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
-                path = random.choice(os.listdir(custom_dir))
+                path = _random_image_from_dir(custom_dir)
                 if path:
                     return Image.open(f"{custom_dir}/{path}").convert("RGBA"), True
                 
@@ -164,7 +174,7 @@ async def get_role_pile(
     if custom:
         custom_dir = f"{CUSTOM_CARD_PATH}/{resource_id}"
         if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
-            path = random.choice(os.listdir(custom_dir))
+            path = _random_image_from_dir(custom_dir)
             if path:
                 return True, Image.open(f"{custom_dir}/{path}").convert("RGBA")
 
@@ -178,7 +188,7 @@ async def get_role_pile_default(
     if custom:
         custom_dir = f"{CUSTOM_MR_CARD_PATH}/{resource_id}"
         if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
-            path = random.choice(os.listdir(custom_dir))
+            path = _random_image_from_dir(custom_dir)
             if path:
                 return Image.open(f"{custom_dir}/{path}").convert("RGBA")
 

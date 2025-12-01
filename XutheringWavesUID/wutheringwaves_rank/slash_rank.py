@@ -1,9 +1,12 @@
 import asyncio
 import copy
+import json
 import re
+import time
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
+import aiofiles
 import httpx
 from PIL import Image, ImageDraw
 
@@ -13,6 +16,7 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
+from ..utils.api.model import SlashDetail
 from ..utils.api.wwapi import (
     GET_SLASH_RANK_URL,
     SlashRank,
@@ -24,6 +28,7 @@ from ..utils.cache import TimedCache
 from ..utils.database.models import WavesBind
 from ..utils.fonts.waves_fonts import (
     waves_font_12,
+    waves_font_16,
     waves_font_18,
     waves_font_20,
     waves_font_34,
@@ -48,8 +53,9 @@ from ..utils.image import (
 )
 from ..utils.resource.RESOURCE_PATH import SLASH_PATH
 from ..utils.util import get_version
+from ..utils.waves_api import waves_api
 from ..wutheringwaves_abyss.draw_slash_card import COLOR_QUALITY
-from ..wutheringwaves_config import WutheringWavesConfig
+from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 avatar_mask = Image.open(TEXT_PATH / "avatar_mask.png")
@@ -360,3 +366,356 @@ async def get_avatar(
         img.paste(pic_temp, (0, 0), mask_pic_temp)
 
     return img
+
+
+class SlashRankListInfo:
+    """无尽排行信息"""
+
+    def __init__(
+        self, user_id: str, uid: str, slash_data: Optional[SlashDetail] = None
+    ):
+        self.user_id = user_id
+        self.uid = uid
+        self.slash_data = slash_data
+        self.score = 0
+
+        if slash_data and slash_data.difficultyList:
+            # 获取难度12的分数
+            difficulty_12 = next(
+                (k for k in slash_data.difficultyList if k.difficulty == 2), None
+            )
+            if difficulty_12 and difficulty_12.challengeList:
+                challenge = difficulty_12.challengeList[0]
+                if challenge.halfList:
+                    # 计算总分数
+                    self.score = sum(half.score for half in challenge.halfList)
+
+
+async def get_all_slash_rank_info(
+    users: List[WavesBind],
+) -> List[SlashRankListInfo]:
+    """从本地获取所有用户的无尽排行信息"""
+    from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
+
+    rankInfoList = []
+
+    for user in users:
+        if not user.uid:
+            continue
+
+        # 从本地读取该用户的无尽数据
+        try:
+            slash_data_path = Path(PLAYER_PATH / user.uid / "slashData.json")
+            if not slash_data_path.exists():
+                continue
+
+            async with aiofiles.open(slash_data_path, mode="r", encoding="utf-8") as f:
+                slash_data = json.loads(await f.read())
+
+            if not slash_data or not slash_data.get("isUnlock", False):
+                continue
+
+            slash_data = SlashDetail.model_validate(slash_data)
+
+            rankInfo = SlashRankListInfo(user.user_id, user.uid, slash_data)
+            if rankInfo.score > 0:
+                rankInfoList.append(rankInfo)
+        except Exception as e:
+            logger.debug(f"获取用户{user.uid}本地无尽数据失败: {e}")
+            continue
+
+    return rankInfoList
+
+
+async def get_role_chain_count(uid: str, role_id: int) -> int:
+    """从rawData.json获取角色共鸣链数量"""
+    from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
+
+    try:
+        raw_data_path = Path(PLAYER_PATH / str(uid) / "rawData.json")
+        if not raw_data_path.exists():
+            return -1
+
+        async with aiofiles.open(raw_data_path, mode="r", encoding="utf-8") as f:
+            raw_data = json.loads(await f.read())
+
+        # rawData是一个列表，包含每个角色的详细信息
+        if isinstance(raw_data, list):
+            for role_data in raw_data:
+                if role_data.get("role", {}).get("roleId") == role_id:
+                    # 获取chainList长度
+                    chain_list = role_data.get("chainList", [])
+                    unlocked_chains = [c for c in chain_list if c.get("unlocked", False)]
+                    return len(unlocked_chains)
+        return -1
+    except Exception as e:
+        logger.debug(f"获取角色{role_id}共鸣链失败: {e}")
+        return -1
+
+
+async def get_five_star_chain_total(uid: str) -> int:
+    """计算五星角色的金数（0链=1金，6链=7金，即链数+1）"""
+    from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
+
+    try:
+        raw_data_path = Path(PLAYER_PATH / str(uid) / "rawData.json")
+        if not raw_data_path.exists():
+            return 0
+
+        async with aiofiles.open(raw_data_path, mode="r", encoding="utf-8") as f:
+            raw_data = json.loads(await f.read())
+
+        total_gold = 0
+        if isinstance(raw_data, list):
+            for role_data in raw_data:
+                role_id = role_data.get("role", {}).get("roleId")
+                if role_id:
+                    char_model = get_char_model(role_id)
+                    # 检查是否是五星角色
+                    if char_model and char_model.starLevel == 5:
+                        chain_list = role_data.get("chainList", [])
+                        unlocked_chains = [c for c in chain_list if c.get("unlocked", False)]
+                        # 金数 = 共鸣链数 + 1
+                        total_gold += len(unlocked_chains) + 1
+        return total_gold
+    except Exception as e:
+        logger.debug(f"计算五星角色金数失败: {e}")
+        return 0
+
+
+async def draw_slash_rank_list(bot: Bot, ev: Event):
+    """绘制无尽排行"""
+    start_time = time.time()
+    logger.info(f"[draw_slash_rank_list] start: {start_time}")
+
+    # 获取群里的所有用户
+    users = await WavesBind.get_group_all_uid(ev.group_id)
+    if not users:
+        msg = []
+        msg.append(f"[鸣潮] 群【{ev.group_id}】暂无无尽排行数据")
+        msg.append(f"请使用【{PREFIX}查询无尽】后再使用此功能！")
+        msg.append("")
+        return "\n".join(msg)
+
+    rankInfoList = await get_all_slash_rank_info(list(users))
+    if len(rankInfoList) == 0:
+        msg = []
+        msg.append(f"[鸣潮] 群【{ev.group_id}】暂无无尽排行数据")
+        msg.append(f"请使用【{PREFIX}查询无尽】后再使用此功能！")
+        msg.append("")
+        return "\n".join(msg)
+
+    # 按分数排序
+    rankInfoList.sort(key=lambda i: i.score, reverse=True)
+
+    # 获取自己的排名
+    self_uid = None
+    rankId = None
+    rankInfo = None
+    try:
+        self_uid = await WavesBind.get_uid_by_game(ev.user_id, ev.bot_id)
+        if self_uid:
+            rankId, rankInfo = next(
+                (
+                    (rankId, rankInfo)
+                    for rankId, rankInfo in enumerate(rankInfoList, start=1)
+                    if rankInfo.uid == self_uid and ev.user_id == rankInfo.user_id
+                ),
+                (None, None),
+            )
+    except Exception as _:
+        pass
+
+    rank_length = 20  # 显示前20条
+    rankInfoList_display = rankInfoList[:rank_length]
+    if rankId and rankInfo and rankId > rank_length:
+        rankInfoList_display.append(rankInfo)
+
+    # 设置图像尺寸
+    width = 1000
+    item_spacing = 120
+    header_height = 510
+    footer_height = 50
+
+    # 计算所需的总高度
+    total_height = header_height + item_spacing * len(rankInfoList_display) + footer_height
+
+    # 创建带背景的画布
+    card_img = get_waves_bg(width, total_height, "bg9")
+
+    # title
+    title_bg = Image.open(TEXT_PATH / "slash.jpg")
+    title_bg = title_bg.crop((0, 0, width, 475))
+
+    # icon
+    icon = get_ICON()
+    icon = icon.resize((128, 128))
+    title_bg.paste(icon, (60, 240), icon)
+
+    # title
+    title_text = "#无尽群排行"
+    title_bg_draw = ImageDraw.Draw(title_bg)
+    title_bg_draw.text((220, 290), title_text, "white", waves_font_58, "lm")
+
+    # 遮罩
+    char_mask = Image.open(TEXT_PATH / "char_mask.png").convert("RGBA")
+    # 根据width扩图
+    char_mask = char_mask.resize((width, char_mask.height * width // char_mask.width))
+    char_mask = char_mask.crop((0, char_mask.height - 475, width, char_mask.height))
+    char_mask_temp = Image.new("RGBA", char_mask.size, (0, 0, 0, 0))
+    char_mask_temp.paste(title_bg, (0, 0), char_mask)
+
+    card_img.paste(char_mask_temp, (0, 0), char_mask_temp)
+
+    # 获取头像
+    tasks = [get_avatar(rank.user_id) for rank in rankInfoList_display]
+    results = await asyncio.gather(*tasks)
+
+    # 绘制排行条目
+    bar = Image.open(TEXT_PATH / "bar2.png")
+
+    for rank_temp_index, temp in enumerate(zip(rankInfoList_display, results)):
+        rankInfo = temp[0]
+        role_avatar = temp[1]
+        role_bg = bar.copy()
+        role_bg.paste(role_avatar, (100, 0), role_avatar)
+        role_bg_draw = ImageDraw.Draw(role_bg)
+
+        # 排名
+        rank_id = rank_temp_index + 1
+        rank_color = (54, 54, 54)
+        if rank_id == 1:
+            rank_color = (255, 0, 0)
+        elif rank_id == 2:
+            rank_color = (255, 180, 0)
+        elif rank_id == 3:
+            rank_color = (185, 106, 217)
+
+        def draw_rank_id(rank_id, size=(50, 50), draw=(24, 24), dest=(40, 30)):
+            info_rank = Image.new("RGBA", size, color=(255, 255, 255, 0))
+            rank_draw = ImageDraw.Draw(info_rank)
+            rank_draw.rounded_rectangle(
+                [0, 0, size[0], size[1]], radius=8, fill=rank_color + (int(0.9 * 255),)
+            )
+            rank_draw.text(draw, f"{rank_id}", "white", waves_font_34, "mm")
+            role_bg.alpha_composite(info_rank, dest)
+
+        if rank_id > 999:
+            draw_rank_id("999+", size=(100, 50), draw=(50, 24), dest=(10, 30))
+        elif rank_id > 99:
+            draw_rank_id(rank_id, size=(75, 50), draw=(37, 24), dest=(25, 30))
+        else:
+            draw_rank_id(rank_id, size=(50, 50), draw=(24, 24), dest=(40, 30))
+
+        # 计算出场角色的金数
+        char_gold_total = 0
+        if rankInfo.slash_data and rankInfo.slash_data.difficultyList:
+            difficulty_12 = next(
+                (k for k in rankInfo.slash_data.difficultyList if k.difficulty == 2), None
+            )
+            if difficulty_12 and difficulty_12.challengeList:
+                challenge = difficulty_12.challengeList[0]
+                if challenge.halfList:
+                    for slash_half in challenge.halfList:
+                        for slash_role in slash_half.roleList:
+                            chain_count = await get_role_chain_count(rankInfo.uid, slash_role.roleId)
+                            char_gold_total += (chain_count + 1) if chain_count >= 0 else 0
+       
+        role_bg_draw.text(
+            (210, 40), f"角色金数: {char_gold_total}", "white", waves_font_18, "lm"
+        )
+
+        # 特征码（白色UID）
+        uid_color = "white"
+        if rankInfo.uid == self_uid:
+            uid_color = RED
+        role_bg_draw.text(
+            (210, 70), f"{rankInfo.uid}", uid_color, waves_font_20, "lm"
+        )
+
+        # 总分数
+        role_bg_draw.text(
+            (880, 55),
+            f"{rankInfo.score}",
+            get_score_color(rankInfo.score),
+            waves_font_44,
+            "mm",
+        )
+
+        # 绘制角色和信物信息
+        if rankInfo.slash_data and rankInfo.slash_data.difficultyList:
+            # 获取难度12的数据
+            difficulty_12 = next(
+                (k for k in rankInfo.slash_data.difficultyList if k.difficulty == 2), None
+            )
+            if difficulty_12 and difficulty_12.challengeList:
+                challenge = difficulty_12.challengeList[0]
+                if challenge.halfList:
+                    for half_index, slash_half in enumerate(challenge.halfList):
+                        # 绘制角色信息
+                        for role_index, slash_role in enumerate(slash_half.roleList):
+                            try:
+                                char_avatar = await get_square_avatar(slash_role.roleId)
+                                char_avatar = char_avatar.resize((45, 45))
+
+                                # 获取角色共鸣链
+                                chain_count = await get_role_chain_count(rankInfo.uid, slash_role.roleId)
+                                if chain_count != -1:
+                                    info_block = Image.new("RGBA", (20, 20), color=(255, 255, 255, 0))
+                                    info_block_draw = ImageDraw.Draw(info_block)
+                                    info_block_draw.rectangle(
+                                        [0, 0, 20, 20], fill=(96, 12, 120, int(0.9 * 255))
+                                    )
+                                    info_block_draw.text(
+                                        (8, 8),
+                                        f"{chain_count}",
+                                        "white",
+                                        waves_font_12,
+                                        "mm",
+                                    )
+                                    char_avatar.paste(info_block, (30, 30), info_block)
+
+                                role_bg.alpha_composite(
+                                    char_avatar,
+                                    (350 + half_index * 235 + role_index * 50, 20),
+                                )
+                            except Exception as e:
+                                logger.debug(f"绘制角色{slash_role.roleId}失败: {e}")
+
+                        # 绘制信物
+                        try:
+                            buff_bg = Image.new("RGBA", (50, 50), (255, 255, 255, 0))
+                            buff_bg_draw = ImageDraw.Draw(buff_bg)
+                            buff_bg_draw.rounded_rectangle(
+                                [0, 0, 50, 50],
+                                radius=5,
+                                fill=(0, 0, 0, int(0.8 * 255)),
+                            )
+                            buff_color = COLOR_QUALITY[slash_half.buffQuality]
+                            buff_bg_draw.rectangle(
+                                [0, 45, 50, 50],
+                                fill=buff_color,
+                            )
+                            buff_pic = await pic_download_from_url(SLASH_PATH, slash_half.buffIcon)
+                            buff_pic = buff_pic.resize((50, 50))
+                            buff_bg.paste(buff_pic, (0, 0), buff_pic)
+                            role_bg.alpha_composite(buff_bg, (500 + half_index * 235, 15))
+                        except Exception as e:
+                            logger.debug(f"绘制信物失败: {e}")
+
+                        # 显示半分数（在信物和角色下方）
+                        role_bg_draw.text(
+                            (450 + half_index * 230, 80),
+                            f"{slash_half.score}",
+                            get_score_color(slash_half.score),
+                            waves_font_20,
+                            "mm",
+                        )
+
+        card_img.paste(role_bg, (0, 510 + rank_temp_index * item_spacing), role_bg)
+
+    card_img = add_footer(card_img)
+    card_img = await convert_img(card_img)
+
+    logger.info(f"[draw_slash_rank_list] end: {time.time() - start_time}")
+    return card_img

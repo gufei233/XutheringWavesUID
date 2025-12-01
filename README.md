@@ -60,6 +60,8 @@ macos_intel: python3.10-3.13<br>
 macos_apple: python3.10-3.13<br>
 android: python3.10-3.12<br>
 
+**！本插件所含构建没有任何风险后门！本插件所含构建只读取gsuid_core目录下的文件，只请求非构建部分显示的域名！请随意进行流量检查和读写检查！**
+
 ## 致谢
 - ⭐[Echo](https://github.com/tyql688)
 - 特别鸣谢 [Wuyi无疑](https://github.com/KimigaiiWuyi) 为 WutheringWavesUID 作出的巨大贡献！本插件的设计图均出自 Wuyi无疑

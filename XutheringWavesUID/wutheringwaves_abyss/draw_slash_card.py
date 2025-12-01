@@ -1,8 +1,11 @@
+import json
 from pathlib import Path
 from typing import Union
 
+import aiofiles
 from PIL import Image, ImageDraw
 
+from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
@@ -36,7 +39,7 @@ from ..utils.image import (
 from ..utils.imagetool import draw_pic, draw_pic_with_ring
 from ..utils.queues.const import QUEUE_SLASH_RECORD
 from ..utils.queues.queues import push_item
-from ..utils.resource.RESOURCE_PATH import SLASH_PATH
+from ..utils.resource.RESOURCE_PATH import PLAYER_PATH, SLASH_PATH
 from ..utils.waves_api import waves_api
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
@@ -355,11 +358,29 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
             )
             index += 1
 
+    await save_slash_record(uid, slash_detail)
     await upload_slash_record(is_self_ck, uid, slash_detail)
 
     card_img = add_footer(card_img, 600, 20)
     card_img = await convert_img(card_img)
     return card_img
+
+
+async def save_slash_record(
+    uid: str,
+    slash_data: SlashDetail,
+):
+    """保存无尽记录到本地文件"""
+    try:
+        _dir = PLAYER_PATH / uid
+        _dir.mkdir(parents=True, exist_ok=True)
+        path = _dir / "slashData.json"
+
+        slash_dict = slash_data.model_dump()
+        async with aiofiles.open(path, "w", encoding="utf-8") as file:
+            await file.write(json.dumps(slash_dict, ensure_ascii=False))
+    except Exception as e:
+        logger.warning(f"[保存无尽数据失败] uid={uid}, error={e}")
 
 
 async def upload_slash_record(

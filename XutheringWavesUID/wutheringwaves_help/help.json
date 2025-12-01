@@ -87,7 +87,7 @@
       {
         "name": "鸣潮面板更新",
         "desc": "鸣潮面板更新",
-        "eg": "刷新面板",
+        "eg": "刷新(椿)面板",
         "need_ck": true,
         "need_sk": false,
         "need_admin": false
@@ -143,7 +143,7 @@
       {
         "name": "窥视(:",
         "desc": "窥视面板",
-        "eg": "uid椿面板",
+        "eg": "123456椿面板",
         "need_ck": true,
         "need_sk": false,
         "need_admin": false
@@ -319,9 +319,33 @@
         "need_admin": false
       },
       {
+        "name": "练度排行",
+        "desc": "练度排行",
+        "eg": "练度排行a/s/ss",
+        "need_ck": false,
+        "need_sk": false,
+        "need_admin": false
+      },
+      {
         "name": "练度总排行",
         "desc": "练度总排行",
         "eg": "练度总排行",
+        "need_ck": false,
+        "need_sk": false,
+        "need_admin": false
+      },
+      {
+        "name": "海墟无尽排行",
+        "desc": "海墟无尽排行",
+        "eg": "无尽排行",
+        "need_ck": false,
+        "need_sk": false,
+        "need_admin": false
+      },
+      {
+        "name": "海墟无尽总排行",
+        "desc": "海墟无尽总排行",
+        "eg": "无尽总排行",
         "need_ck": false,
         "need_sk": false,
         "need_admin": false
@@ -360,6 +384,14 @@
         "desc": "导出抽卡记录",
         "eg": "导出抽卡记录",
         "need_ck": true,
+        "need_sk": false,
+        "need_admin": false
+      },
+      {
+        "name": "抽卡排行",
+        "desc": "抽卡排行",
+        "eg": "抽卡排行",
+        "need_ck": false,
         "need_sk": false,
         "need_admin": false
       }

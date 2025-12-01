@@ -12,9 +12,11 @@ from ..utils.error_reply import ERROR_CODE, WAVES_CODE_103
 from ..wutheringwaves_config import PREFIX
 from .draw_gachalogs import draw_card, draw_card_help
 from .get_gachalogs import export_gachalogs, import_gachalogs, save_gachalogs
+from ..wutheringwaves_rank.draw_gacha_rank_card import draw_gacha_rank_card
 
 sv_gacha_log = SV("waves抽卡记录")
 sv_gacha_help_log = SV("waves抽卡记录帮助")
+sv_gacha_rank = SV("waves抽卡排行", priority=0)
 sv_get_gachalog_by_link = SV("waves导入抽卡链接", area="DIRECT")
 sv_import_gacha_log = SV("waves导入抽卡记录", area="DIRECT")
 sv_export_json_gacha_log = SV("waves导出抽卡记录")
@@ -119,3 +121,16 @@ async def send_export_gacha_info(bot: Bot, ev: Event):
         await bot.send("✅导出抽卡记录成功！")
     else:
         await bot.send("导出抽卡记录失败...")
+
+
+@sv_gacha_rank.on_command(
+    ("抽卡排行", "抽卡排名", "群抽卡排行", "群抽卡排名"),
+    block=True,
+)
+async def send_gacha_rank_info(bot: Bot, ev: Event):
+    if not ev.group_id:
+        return await bot.send("请在群聊中使用本功能！")
+
+    await bot.logger.info("[鸣潮]开始执行 抽卡排行")
+    im = await draw_gacha_rank_card(bot, ev)
+    await bot.send(im)

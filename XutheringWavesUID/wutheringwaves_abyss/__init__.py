@@ -17,6 +17,7 @@ sv_waves_abyss = SV("waves查询深渊")
 sv_waves_challenge = SV("waves查询全息")
 sv_waves_slash = SV("waves查询冥海")
 sv_waves_rank_slash = SV("waves冥海总排行", priority=0)
+sv_waves_rank_slash_list = SV("waves无尽排行", priority=0)
 
 
 @sv_waves_abyss.on_command(
@@ -131,4 +132,22 @@ async def send_waves_rank_slash_info(bot: Bot, ev: Event):
     from ..wutheringwaves_rank.slash_rank import draw_all_slash_rank_card
 
     im = await draw_all_slash_rank_card(bot, ev)
+    return await bot.send(im)
+
+
+@sv_waves_rank_slash_list.on_command(
+    (
+        "无尽排行",
+        "无尽排名",
+        "无尽群排行",
+        "无尽群排名",
+        "群无尽排行",
+        "群无尽排名",
+    ),
+    block=True,
+)
+async def send_waves_rank_slash_list_info(bot: Bot, ev: Event):
+    from ..wutheringwaves_rank.slash_rank import draw_slash_rank_list
+
+    im = await draw_slash_rank_list(bot, ev)
     return await bot.send(im)

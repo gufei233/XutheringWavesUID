@@ -134,6 +134,163 @@ async def draw_card_help():
     return msg
 
 
+async def get_gacha_stats(uid: str) -> Dict:
+    """获取抽卡统计信息，优先从缓存读取，否则从原始数据计算"""
+    _dir = PLAYER_PATH / str(uid)
+    _dir.mkdir(parents=True, exist_ok=True)
+
+    stats_path = _dir / "gachaStats.json"
+    # 如果统计文件存在，直接读取
+    if stats_path.exists():
+        try:
+            async with aiofiles.open(stats_path, "r", encoding="utf-8") as f:
+                return json.loads(await f.read())
+        except Exception:
+            pass
+
+    # 否则从 gacha_logs.json 计算
+    gacha_log_path = _dir / "gacha_logs.json"
+    if not gacha_log_path.exists():
+        return {}
+
+    try:
+        async with aiofiles.open(gacha_log_path, "r", encoding="utf-8") as f:
+            raw_data = json.loads(await f.read())
+
+        gachalogs = raw_data.get("data", {})
+        total_data = {}
+
+        for gacha_name in gachalogs:
+            total_data[gacha_name] = {
+                "total": 0,
+                "avg": 0,
+                "avg_up": 0,
+                "remain": 0,
+                "r_num": [],
+                "up_list": [],
+                "rank_s_list": [],
+                "level": 0,
+            }
+
+        for gacha_name in gachalogs:
+            num = 1
+            gacha_data = gachalogs[gacha_name]
+            current_data = total_data[gacha_name]
+
+            for data in gacha_data[::-1]:
+                if data["qualityLevel"] == 5:
+                    data["gacha_num"] = num
+
+                    if data["name"] in NORMAL_LIST:
+                        data["is_up"] = False
+                    else:
+                        data["is_up"] = True
+
+                    current_data["r_num"].append(num)
+                    current_data["rank_s_list"].append(data)
+                    if data["is_up"]:
+                        current_data["up_list"].append(data)
+
+                    num = 1
+                else:
+                    num += 1
+                current_data["total"] += 1
+
+            current_data["remain"] = num - 1
+            if len(current_data["rank_s_list"]) == 0:
+                current_data["avg"] = 0
+            else:
+                _d = sum(current_data["r_num"]) / len(current_data["r_num"])
+                current_data["avg"] = float("{:.2f}".format(_d))
+
+            if len(current_data["up_list"]) == 0:
+                current_data["avg_up"] = 0
+            else:
+                _u = sum(current_data["r_num"]) / len(current_data["up_list"])
+                current_data["avg_up"] = float("{:.2f}".format(_u))
+
+            current_data["level"] = 2
+            if current_data["avg_up"] == 0 and current_data["avg"] == 0:
+                current_data["level"] = 2
+            else:
+                if gacha_name == "角色精准调谐":
+                    if current_data["avg_up"] != 0:
+                        current_data["level"] = get_level_from_list(
+                            current_data["avg_up"], [74, 87, 99, 105, 120]
+                        )
+                    elif current_data["avg"] != 0:
+                        current_data["level"] = get_level_from_list(
+                            current_data["avg"], [53, 60, 68, 73, 75]
+                        )
+
+        # 返回转换后的统计数据
+        stats_data = {}
+        for gacha_name, data in total_data.items():
+            # 计算综合平均值：如果有 UP 平均数则用 UP，否则用总平均数，都没有则为 0
+            combined_avg = 0
+            if isinstance(data["avg_up"], (int, float)) and data["avg_up"] > 0:
+                combined_avg = data["avg_up"]
+            elif isinstance(data["avg"], (int, float)) and data["avg"] > 0:
+                combined_avg = data["avg"]
+
+            stats_data[gacha_name] = {
+                "total": data["total"],
+                "avg": data["avg"],  # 总平均抽数
+                "avg_up": data["avg_up"],  # UP平均抽数
+                "combined_avg": combined_avg,  # 综合平均（优先UP）
+                "remain": data["remain"],
+                "r_num": data["r_num"],
+                "up_count": len(data["up_list"]),
+                "rank_s_count": len(data["rank_s_list"]),
+                "level": data["level"],
+                "char_gold": len(data["rank_s_list"]) if gacha_name == "角色精准调谐" else 0,  # 角色金数
+                "weapon_gold": len(data["rank_s_list"]) if gacha_name == "武器精准调谐" else 0,  # 武器金数
+            }
+
+        # 保存统计数据到文件
+        await save_gacha_stats(uid, total_data)
+        return stats_data
+    except Exception:
+        return {}
+
+
+async def save_gacha_stats(uid: str, total_data: Dict):
+    """保存抽卡统计信息到本地文件"""
+    try:
+        _dir = PLAYER_PATH / str(uid)
+        _dir.mkdir(parents=True, exist_ok=True)
+        path = _dir / "gachaStats.json"
+
+        # 提取关键统计信息
+        stats_data = {}
+        for gacha_name, data in total_data.items():
+            # 计算综合平均值：如果有 UP 平均数则用 UP，否则用总平均数，都没有则为 0
+            combined_avg = 0
+            if isinstance(data["avg_up"], (int, float)) and data["avg_up"] > 0:
+                combined_avg = data["avg_up"]
+            elif isinstance(data["avg"], (int, float)) and data["avg"] > 0:
+                combined_avg = data["avg"]
+
+            stats_data[gacha_name] = {
+                "total": data["total"],  # 总抽数
+                "avg": data["avg"],  # 平均抽数
+                "avg_up": data["avg_up"],  # UP平均抽数
+                "combined_avg": combined_avg,  # 综合平均（优先UP）
+                "remain": data["remain"],  # 已xx抽未出金
+                "r_num": data["r_num"],  # 五星出现的抽卡位置列表
+                "up_count": len(data["up_list"]),  # UP五星总数
+                "rank_s_count": len(data["rank_s_list"]),  # 五星总数
+                "level": data["level"],  # 抽卡等级
+                "char_gold": len(data["rank_s_list"]) if gacha_name == "角色精准调谐" else 0,  # 角色金数
+                "weapon_gold": len(data["rank_s_list"]) if gacha_name == "武器精准调谐" else 0,  # 武器金数
+            }
+
+        async with aiofiles.open(path, "w", encoding="utf-8") as file:
+            await file.write(json.dumps(stats_data, ensure_ascii=False))
+    except Exception:
+        pass
+
+
 async def draw_card(uid: str, ev: Event):
     # 获取数据
     gacha_log_path = PLAYER_PATH / str(uid) / "gacha_logs.json"
@@ -238,6 +395,9 @@ async def draw_card(uid: str, ev: Event):
                     current_data["level"] = get_level_from_list(
                         current_data["avg"], [10, 20, 30, 40, 45]
                     )
+
+    # 保存抽卡统计信息到本地
+    await save_gacha_stats(uid, total_data)
 
     oset = 280
     bset = 170

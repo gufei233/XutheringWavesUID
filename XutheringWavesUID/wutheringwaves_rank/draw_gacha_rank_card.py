@@ -50,13 +50,17 @@ class GachaRankCard:
         # 总抽数
         self.total_count = char_pool.get("total", 0) + weapon_pool.get("total", 0)
 
-        # 计算加权抽数 (角色平均*81 + 武器平均*54) / 100
-        self.weighted = (self.char_avg * 81 + self.weapon_avg * 54) / 100.0
-
         # 获取角色金数和武器金数（直接从 gachaStats 中读取，不加权）
         self.char_gold = char_pool.get("char_gold", 0)
         self.weapon_gold = weapon_pool.get("weapon_gold", 0)
         self.gold_total = self.char_gold + self.weapon_gold
+
+        # 计算加权抽数：使用实际投入加权公式
+        denominator = 81 * self.char_gold + 54 * self.weapon_gold
+        if denominator > 0:
+            self.weighted = (self.char_avg * self.char_gold + self.weapon_avg * self.weapon_gold) / denominator
+        else:
+            self.weighted = 0.0
 
 
 async def get_all_gacha_rank_info(users: List[WavesBind], bot_id: str) -> List[GachaRankCard]:
@@ -210,7 +214,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
         "lm",
     )
     text_bar_draw.text(
-        (185, 85), "2. UP/武器为平均抽数。加权 = 角色平均×81 + 武器平均×54", SPECIAL_GOLD, waves_font_20, "lm"
+        (185, 85), "2. UP/武器为平均抽数。加权 = 实际抽数 / (角色数×81 + 武器数×54)", SPECIAL_GOLD, waves_font_20, "lm"
     )
 
     card_img.alpha_composite(text_bar_img, (0, header_height))

@@ -20,7 +20,7 @@ async def set_waves_user_value(ev: Event, func: str, uid: str, value: str):
         == 0
     ):
         if func == "体力背景":
-            return f"设置成功!\n特征码[{uid}]\n当前{func}:{value}\n支持的选项 [角色名](官方)(立绘/背景)"
+            return f"设置成功!\n特征码[{uid}]\n当前{func}:{value}\n例:[椿](官方)(立绘/背景)"
         else:
             return f"设置成功!\n特征码[{uid}]\n当前{func}:{value}"
     else:

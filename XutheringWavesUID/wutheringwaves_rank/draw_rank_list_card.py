@@ -255,7 +255,7 @@ async def draw_rank_list(bot: Bot, ev: Event, pages: int = 1, threshold: int = 1
         "lm",
     )
     text_bar_draw.text(
-        (185, 85), "2. 显示声骸分数最高的前5个角色", SPECIAL_GOLD, waves_font_20, "lm"
+        (185, 85), "2. 显示声骸分数最高的前8个角色", SPECIAL_GOLD, waves_font_20, "lm"
     )
 
     # 备注 - 排行标准，根据阈值动态生成文案

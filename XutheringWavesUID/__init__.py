@@ -14,13 +14,13 @@ PLAYERS_PATH = DATA_PATH / 'XutheringWavesUID' / 'players'
 BACKUP_PATH = DATA_PATH / 'backup'
 if PLAYERS_PATH.exists():
     BACKUP_PATH.mkdir(parents=True, exist_ok=True)
-    pattern = re.compile(r'^\d+_\d+$')
+    pattern = re.compile(r'^\d+_\d+')
     for item in PLAYERS_PATH.iterdir():
         if item.is_dir() and pattern.match(item.name):
             try:
                 backup_item = BACKUP_PATH / item.name
                 if backup_item.exists():
-                    continue
+                    shutil.rmtree(backup_item)
                 shutil.move(str(item), str(backup_item))
                 logger.info(f"[XutheringWavesUID] 已移动错误的players文件夹到备份: {item.name}")
             except Exception as e:

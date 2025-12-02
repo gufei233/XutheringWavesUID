@@ -50,13 +50,17 @@ class GachaRankCard:
         # 总抽数
         self.total_count = char_pool.get("total", 0) + weapon_pool.get("total", 0)
 
-        # 计算加权抽数 (角色平均*81 + 武器平均*54) / 100
-        self.weighted = (self.char_avg * 81 + self.weapon_avg * 54) / 100.0
-
         # 获取角色金数和武器金数（直接从 gachaStats 中读取，不加权）
         self.char_gold = char_pool.get("char_gold", 0)
         self.weapon_gold = weapon_pool.get("weapon_gold", 0)
         self.gold_total = self.char_gold + self.weapon_gold
+
+        # 计算加权抽数：使用实际投入加权公式
+        denominator = 81 * self.char_gold + 54 * self.weapon_gold
+        if denominator > 0:
+            self.weighted = (self.char_avg * self.char_gold + self.weapon_avg * self.weapon_gold) / denominator * 100
+        else:
+            self.weighted = 1000
 
 
 async def get_all_gacha_rank_info(users: List[WavesBind], bot_id: str) -> List[GachaRankCard]:
@@ -67,38 +71,72 @@ async def get_all_gacha_rank_info(users: List[WavesBind], bot_id: str) -> List[G
         if not user.user_id:
             continue
 
-        try:
-            current_uid = await WavesBind.get_uid_by_game(user.user_id, bot_id)
-            if not current_uid:
-                continue
-
-            stats = await get_gacha_stats(current_uid)
-            if not stats:
-                continue
-
-            rankInfo = GachaRankCard(user.user_id, current_uid, stats)
-
-            # 获取配置的最小抽数阈值
-            min_pull = WutheringWavesConfig.get_config("GachaRankMin").data
-            if rankInfo.total_count < min_pull:
-                continue
-
-            rankInfoList.append(rankInfo)
-        except Exception as e:
-            logger.debug(f"获取用户{user.user_id}抽卡排行数据失败: {e}")
+        # 处理多个uid（用下划线连接）
+        if not user.uid:
             continue
+
+        for uid in user.uid.split("_"):
+            try:
+                stats = await get_gacha_stats(uid)
+                if not stats:
+                    continue
+
+                rankInfo = GachaRankCard(user.user_id, uid, stats)
+
+                # 获取配置的最小抽数阈值
+                min_pull = WutheringWavesConfig.get_config("GachaRankMin").data
+                if rankInfo.total_count < min_pull:
+                    continue
+
+                rankInfoList.append(rankInfo)
+            except Exception as e:
+                logger.debug(f"获取用户{uid}抽卡排行数据失败: {e}")
+                continue
 
     return rankInfoList
 
 
+async def get_gacha_rank_token_condition(ev):
+    """检查抽卡排行的权限配置"""
+    # 群组 不限制token
+    WavesRankNoLimitGroup = WutheringWavesConfig.get_config(
+        "WavesRankNoLimitGroup"
+    ).data
+    if WavesRankNoLimitGroup and ev.group_id in WavesRankNoLimitGroup:
+        return True
+
+    # 群组 自定义的
+    WavesRankUseTokenGroup = WutheringWavesConfig.get_config(
+        "WavesRankUseTokenGroup"
+    ).data
+    # 全局 主人定义的
+    RankUseToken = WutheringWavesConfig.get_config("RankUseToken").data
+    if (
+        WavesRankUseTokenGroup and ev.group_id in WavesRankUseTokenGroup
+    ) or RankUseToken:
+        return True
+
+    return False
+
+
 async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
     """绘制抽卡排行"""
+    # 检查权限配置
+    tokenLimitFlag = await get_gacha_rank_token_condition(ev)
+
+    # 获取配置的最小抽数阈值
+    min_pull = WutheringWavesConfig.get_config("GachaRankMin").data
+
     # 获取群里的所有用户
     users = await WavesBind.get_group_all_uid(ev.group_id)
     if not users:
         msg = []
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无抽卡排行数据")
         msg.append(f"请使用【{PREFIX}导入抽卡记录】后再使用此功能！")
+        if tokenLimitFlag:
+            msg.append(
+                f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！"
+            )
         return "\n".join(msg)
 
     rankInfoList = await get_all_gacha_rank_info(list(users), ev.bot_id)
@@ -106,6 +144,10 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
         msg = []
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无抽卡排行数据")
         msg.append(f"请使用【{PREFIX}导入抽卡记录】后再使用此功能！")
+        if tokenLimitFlag:
+            msg.append(
+                f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！"
+            )
         return "\n".join(msg)
 
     # 按加权抽数排序（分数越低越欧）
@@ -166,13 +208,13 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
     text_bar_draw.text((40, 60), "排行说明", (150, 150, 150), waves_font_28, "lm")
     text_bar_draw.text(
         (185, 50),
-        "1. 仅显示总抽数≥1000的玩家",
+        f"1. 仅显示总抽数≥{min_pull}的玩家",
         SPECIAL_GOLD,
         waves_font_20,
         "lm",
     )
     text_bar_draw.text(
-        (185, 85), "2. UP/武器为平均抽数。加权 = 角色平均×81 + 武器平均×54", SPECIAL_GOLD, waves_font_20, "lm"
+        (185, 85), "2. UP/武器为平均抽数。加权 = 实际抽数 / (角色数×81 + 武器数×54)", SPECIAL_GOLD, waves_font_20, "lm"
     )
 
     card_img.alpha_composite(text_bar_img, (0, header_height))

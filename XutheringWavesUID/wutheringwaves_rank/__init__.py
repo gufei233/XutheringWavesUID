@@ -13,7 +13,7 @@ from ..utils.char_info_utils import PATTERN
 sv_waves_rank_list = SV("ww角色排行")
 sv_waves_rank_all_list = SV("ww角色总排行", priority=1)
 sv_waves_rank_total_list = SV("ww练度总排行", priority=0)
-sv_waves_rank_practice_list = SV("ww练度排行", priority=0)
+sv_waves_rank_list = SV("ww练度排行", priority=0)
 
 
 @sv_waves_rank_list.on_regex(rf"^(?P<char>{PATTERN})(?:排行|排名)$", block=True)
@@ -78,8 +78,8 @@ async def send_total_rank_card(bot: Bot, ev: Event):
     await bot.send(im)
 
 
-@sv_waves_rank_practice_list.on_command(("练度排行", "群练度排行", "练度群排行", "练度排名", "群练度排名", "练度群排名"), block=True)
-async def send_practice_rank_card(bot: Bot, ev: Event):
+@sv_waves_rank_list.on_command(("练度排行", "群练度排行", "练度群排行", "练度排名", "群练度排名", "练度群排名"), block=True)
+async def send_rank_list_card(bot: Bot, ev: Event):
 
     pages = 1
     im = await draw_rank_list(bot, ev, pages)

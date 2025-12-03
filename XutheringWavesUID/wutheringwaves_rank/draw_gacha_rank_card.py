@@ -127,6 +127,15 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
     # 获取配置的最小抽数阈值
     min_pull = WutheringWavesConfig.get_config("GachaRankMin").data
 
+    # 解析参数以获取排序类型
+    text = ev.text.strip() if ev.text else ""
+    sort_reverse = False
+    if text:
+        if "非" in text:
+            sort_reverse = True
+        elif "欧" in text:
+            sort_reverse = False
+
     # 获取群里的所有用户
     users = await WavesBind.get_group_all_uid(ev.group_id)
     if not users:
@@ -150,8 +159,8 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
             )
         return "\n".join(msg)
 
-    # 按加权抽数排序（分数越低越欧）
-    rankInfoList.sort(key=lambda i: i.weighted)
+    # 按加权抽数排序（分数越低越欧，反向排序则是非）
+    rankInfoList.sort(key=lambda i: i.weighted, reverse=sort_reverse)
 
     # 获取自己的排名
     self_uid = None
@@ -176,7 +185,6 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
     if rankId and rankInfo and rankId > rank_length:
         rankInfoList_display.append(rankInfo)
 
-    # 设置图像尺寸 - 使用1000宽度，一行一条，使用bar2.png的原始高度120
     width = 1000
     text_bar_height = 130
     item_spacing = 120

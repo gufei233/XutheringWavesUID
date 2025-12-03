@@ -390,7 +390,7 @@
       {
         "name": "抽卡排行",
         "desc": "抽卡排行",
-        "eg": "抽卡排行",
+        "eg": "抽卡排行(欧/非)",
         "need_ck": false,
         "need_sk": false,
         "need_admin": false

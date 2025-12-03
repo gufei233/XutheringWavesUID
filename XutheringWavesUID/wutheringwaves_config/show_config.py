@@ -36,8 +36,8 @@ SHOW_CONIFG: Dict[str, GSC] = {
         False,
     ),
     "CardBgPath": GsImageConfig(
-        "自定义面板背景",
-        "自定义面板背景图片",
+        "自定义背景",
+        "自定义背景图片，亦用于排行等背景",
         str(bg_path / "card.jpg"),
         str(bg_path),
         "card",

@@ -47,7 +47,7 @@ from ..utils.image import (
     get_role_pile_default,
     get_square_avatar,
     get_square_weapon,
-    get_waves_bg,
+    get_custom_waves_bg,
 )
 from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
 from ..utils.resource.constant import SPECIAL_CHAR, SPECIAL_CHAR_NAME
@@ -365,7 +365,7 @@ async def draw_rank_img(
     title_h = 500
     bar_star_h = 110
     h = title_h + totalNum * bar_star_h + 80
-    card_img = get_waves_bg(1050, h, "bg3")
+    card_img = get_custom_waves_bg(1050, h, "bg3")
     card_img_draw = ImageDraw.Draw(card_img)
 
     bar = Image.open(TEXT_PATH / "bar.png")

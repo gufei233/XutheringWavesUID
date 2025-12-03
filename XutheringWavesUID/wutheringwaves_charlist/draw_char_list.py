@@ -38,7 +38,7 @@ from ..utils.image import (
     get_event_avatar,
     get_square_avatar,
     get_square_weapon,
-    get_waves_bg,
+    get_custom_waves_bg,
 )
 from ..utils.refresh_char_detail import refresh_char
 from ..utils.resource.constant import NORMAL_LIST
@@ -123,7 +123,7 @@ async def draw_char_list_img(
     info_bg_h = 260
     bar_star_h = 110
     h = avatar_h + info_bg_h + len(waves_char_rank) * bar_star_h + 80
-    card_img = get_waves_bg(1000, h, "bg3")
+    card_img = get_custom_waves_bg(1000, h, "bg3")
 
     # 基础信息 名字 特征码
     base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")

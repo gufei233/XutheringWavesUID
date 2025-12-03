@@ -38,7 +38,7 @@ from ..utils.image import (
     YELLOW,
     add_footer,
     change_color,
-    get_waves_bg,
+    get_custom_waves_bg,
 )
 from ..utils.imagetool import draw_pic_with_ring
 from ..utils.waves_api import waves_api
@@ -111,7 +111,7 @@ async def draw_explore_img(ev: Event, uid: str, user_id: str):
         if _explore.areaInfoList:
             h += math.ceil(len(_explore.areaInfoList) / 3) * explore_frame_h
 
-    img = get_waves_bg(2000, h, "bg3")
+    img = get_custom_waves_bg(2000, h, "bg3")
 
     # 头像部分
     avatar, avatar_ring = await draw_pic_with_ring(ev)

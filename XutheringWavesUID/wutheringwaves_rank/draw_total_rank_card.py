@@ -44,7 +44,7 @@ from ..utils.image import (
     get_ICON,
     get_qq_avatar,
     get_square_avatar,
-    get_waves_bg,
+    get_custom_waves_bg,
 )
 from ..utils.util import get_version
 from ..wutheringwaves_config import WutheringWavesConfig
@@ -128,7 +128,7 @@ async def draw_total_rank(bot: Bot, ev: Event, pages: int) -> Union[str, bytes]:
     )
 
     # 创建带背景的画布 - 使用bg9
-    card_img = get_waves_bg(width, total_height, "bg9")
+    card_img = get_custom_waves_bg(width, total_height, "bg9")
 
     text_bar_img = Image.new("RGBA", (width, 130), color=(0, 0, 0, 0))
     text_bar_draw = ImageDraw.Draw(text_bar_img)

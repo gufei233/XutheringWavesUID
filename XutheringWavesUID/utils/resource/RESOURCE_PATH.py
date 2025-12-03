@@ -14,6 +14,9 @@ CONFIG_PATH = MAIN_PATH / "config.json"
 # 用户数据保存文件
 PLAYER_PATH = MAIN_PATH / "players"
 
+# 储存数据保存路径
+CACHE_PATH = MAIN_PATH / "cache"
+
 # 游戏素材
 RESOURCE_PATH = MAIN_PATH / "resource"
 PHANTOM_PATH = RESOURCE_PATH / "phantom"

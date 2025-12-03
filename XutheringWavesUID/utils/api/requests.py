@@ -1,7 +1,9 @@
 import asyncio
 import inspect
 import json
+import os
 import random
+import string
 from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
 import aiohttp
@@ -13,6 +15,7 @@ from ...utils.database.models import WavesUser
 from ...wutheringwaves_config import WutheringWavesConfig
 from ..error_reply import WAVES_CODE_999
 from ..util import timed_async_cache
+from ..resource.RESOURCE_PATH import CACHE_PATH
 from .api import (
     ANN_CONTENT_URL,
     ANN_LIST_URL,
@@ -66,6 +69,13 @@ from .request_util import (
     get_base_header,
     get_community_header,
 )
+
+
+def generate_random_jwt_token() -> str:
+    chars = string.ascii_letters + string.digits
+    payload = ''.join(random.choice(chars) for _ in range(58))
+    signature = ''.join(random.choice(chars) for _ in range(43))
+    return f"eyJhbGciOiJIUzI1NiJ9.{payload}.{signature}"
 
 
 class WavesApi:
@@ -155,11 +165,16 @@ class WavesApi:
         return headers
 
     async def get_ck_result(self, uid, user_id, bot_id) -> tuple[bool, Optional[str]]:
-        ck = await self.get_self_waves_ck(uid, user_id, bot_id)
-        if ck:
-            return True, ck
-        ck = await self.get_waves_random_cookie(uid, user_id)
-        return False, ck
+        try:
+            ck = await self.get_self_waves_ck(uid, user_id, bot_id)
+            if ck:
+                return True, ck
+            ck = await self.get_waves_random_cookie(uid, user_id)
+            return False, ck
+        except Exception:
+            # 兜底
+            return False, generate_random_jwt_token()
+
 
     async def get_self_waves_ck(
         self, uid: str, user_id: str, bot_id: str
@@ -298,7 +313,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(BASE_DATA_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                info = await self._waves_request(BASE_DATA_URL, "POST", header, data=data)
+                base_info_path = CACHE_PATH / "base_info"
+                base_info_path.mkdir(parents=True, exist_ok=True)
+                with open(base_info_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(info.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取基础信息失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "base_info" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    info = json.load(f)
+                info = KuroApiResp(**info)
+        else:
+            info = await self._waves_request(BASE_DATA_URL, "POST", header, data=data)
+        return info
 
     async def get_role_info(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -312,7 +341,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(ROLE_DATA_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                role_info = await self._waves_request(ROLE_DATA_URL, "POST", header, data=data)
+                role_info_path = CACHE_PATH / "role_info"
+                role_info_path.mkdir(parents=True, exist_ok=True)
+                with open(role_info_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(role_info.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取基础信息失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "role_info" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    role_info = json.load(f)
+                role_info = KuroApiResp(**role_info)
+        else:
+            role_info = await self._waves_request(ROLE_DATA_URL, "POST", header, data=data)
+        return role_info
 
     async def get_tree(self):
         header = await get_community_header()
@@ -341,7 +384,21 @@ class WavesApi:
             "countryCode": "1",
             "id": charId,
         }
-        return await self._waves_request(ROLE_DETAIL_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                role_detail = await self._waves_request(ROLE_DETAIL_URL, "POST", header, data=data)
+                role_detail_path = CACHE_PATH / "role_detail"
+                role_detail_path.mkdir(parents=True, exist_ok=True)
+                with open(role_detail_path / f"{roleId}_{charId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(role_detail.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取角色详情失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "role_detail" / f"{roleId}_{charId}.json", "r", encoding="utf-8") as f:
+                    role_detail = json.load(f)
+                role_detail = KuroApiResp(**role_detail)
+        else:
+            role_detail = await self._waves_request(ROLE_DETAIL_URL, "POST", header, data=data)
+        return role_detail
 
     async def get_calabash_data(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -356,7 +413,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(CALABASH_DATA_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                calabash_data = await self._waves_request(CALABASH_DATA_URL, "POST", header, data=data)
+                calabash_data_path = CACHE_PATH / "calabash_data"
+                calabash_data_path.mkdir(parents=True, exist_ok=True)
+                with open(calabash_data_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(calabash_data.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取数据坞失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "calabash_data" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    calabash_data = json.load(f)
+                calabash_data = KuroApiResp(**calabash_data)
+        else:
+            calabash_data = await self._waves_request(CALABASH_DATA_URL, "POST", header, data=data)
+        return calabash_data
 
     async def get_explore_data(
         self,
@@ -376,7 +447,21 @@ class WavesApi:
             "roleId": roleId,
             "countryCode": countryCode,
         }
-        return await self._waves_request(EXPLORE_DATA_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                explore_data = await self._waves_request(EXPLORE_DATA_URL, "POST", header, data=data)
+                explore_data_path = CACHE_PATH / "explore_data"
+                explore_data_path.mkdir(parents=True, exist_ok=True)
+                with open(explore_data_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(explore_data.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取探索度失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "explore_data" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    explore_data = json.load(f)
+                explore_data = KuroApiResp(**explore_data)
+        else:
+            explore_data = await self._waves_request(EXPLORE_DATA_URL, "POST", header, data=data)
+        return explore_data
 
     async def get_challenge_data(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -391,7 +476,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(CHALLENGE_DATA_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                challenge_data = await self._waves_request(CHALLENGE_DATA_URL, "POST", header, data=data)
+                challenge_data_path = CACHE_PATH / "challenge_data"
+                challenge_data_path.mkdir(parents=True, exist_ok=True)
+                with open(challenge_data_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(challenge_data.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取全息数据失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "challenge_data" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    challenge_data = json.load(f)
+                challenge_data = KuroApiResp(**challenge_data)
+        else:
+            challenge_data = await self._waves_request(CHALLENGE_DATA_URL, "POST", header, data=data)
+        return challenge_data
 
     async def get_abyss_data(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -405,7 +504,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(TOWER_DETAIL_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                abyss_data = await self._waves_request(TOWER_DETAIL_URL, "POST", header, data=data)
+                abyss_data_path = CACHE_PATH / "abyss_data"
+                abyss_data_path.mkdir(parents=True, exist_ok=True)
+                with open(abyss_data_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(abyss_data.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取深渊数据失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "abyss_data" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    abyss_data = json.load(f)
+                abyss_data = KuroApiResp(**abyss_data)
+        else:
+            abyss_data = await self._waves_request(TOWER_DETAIL_URL, "POST", header, data=data)
+        return abyss_data
 
     async def get_abyss_index(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -420,7 +533,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(TOWER_INDEX_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                abyss_index = await self._waves_request(TOWER_INDEX_URL, "POST", header, data=data)
+                abyss_index_path = CACHE_PATH / "abyss_index"
+                abyss_index_path.mkdir(parents=True, exist_ok=True)
+                with open(abyss_index_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(abyss_index.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取深渊索引失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "abyss_index" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    abyss_index = json.load(f)
+                abyss_index = KuroApiResp(**abyss_index)
+        else:
+            abyss_index = await self._waves_request(TOWER_INDEX_URL, "POST", header, data=data)
+        return abyss_index
 
     async def get_slash_index(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -435,7 +562,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(SLASH_INDEX_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                slash_index = await self._waves_request(SLASH_INDEX_URL, "POST", header, data=data)
+                slash_index_path = CACHE_PATH / "slash_index"
+                slash_index_path.mkdir(parents=True, exist_ok=True)
+                with open(slash_index_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(slash_index.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取冥海索引失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "slash_index" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    slash_index = json.load(f)
+                slash_index = KuroApiResp(**slash_index)
+        else:
+            slash_index = await self._waves_request(SLASH_INDEX_URL, "POST", header, data=data)
+        return slash_index
 
     async def get_slash_detail(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -450,7 +591,21 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(SLASH_DETAIL_URL, "POST", header, data=data)
+        if WutheringWavesConfig.get_config("CacheEverything").data:
+            try:
+                slash_detail = await self._waves_request(SLASH_DETAIL_URL, "POST", header, data=data)
+                slash_detail_path = CACHE_PATH / "slash_detail"
+                slash_detail_path.mkdir(parents=True, exist_ok=True)
+                with open(slash_detail_path / f"{roleId}.json", "w", encoding="utf-8") as f:
+                    f.write(json.dumps(slash_detail.model_dump(), ensure_ascii=False, indent=4))
+            except Exception as e:
+                logger.error(f"获取冥海详情失败，返回缓存数据 {e}")
+                with open(CACHE_PATH / "slash_detail" / f"{roleId}.json", "r", encoding="utf-8") as f:
+                    slash_detail = json.load(f)
+                slash_detail = KuroApiResp(**slash_detail)
+        else:
+            slash_detail = await self._waves_request(SLASH_DETAIL_URL, "POST", header, data=data)
+        return slash_detail
 
     async def get_more_activity(
         self, roleId: str, token: str, serverId: Optional[str] = None
@@ -845,6 +1000,4 @@ class WavesApi:
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delay)
 
-        return KuroApiResp[Any].err(
-            "请求服务器失败，已达最大重试次数", code=WAVES_CODE_999
-        )
+        raise TypeError("请求服务器失败，已达最大重试次数")

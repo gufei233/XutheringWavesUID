@@ -24,7 +24,7 @@ from ..utils.image import (
     GREY,
     SPECIAL_GOLD,
     add_footer,
-    get_waves_bg,
+    get_custom_waves_bg,
     pic_download_from_url,
 )
 from ..utils.imagetool import draw_pic, draw_pic_with_ring
@@ -73,7 +73,7 @@ async def draw_challenge_img(ev: Event, uid: str, user_id: str) -> Union[bytes, 
     num = len(challenge_data.challengeInfo)
     a = num // 2 + (0 if num % 2 == 0 else 1)
     h = 300 + a * 260 + 50
-    card_img = get_waves_bg(1560, h, "bg8")
+    card_img = get_custom_waves_bg(1560, h, "bg8")
 
     # 基础信息 名字 特征码
     base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")

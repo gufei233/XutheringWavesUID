@@ -183,5 +183,10 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "验证码提供方appkey",
         "验证码提供方appkey",
         "",
-    )
+    ),
+    "CacheEverything": GsBoolConfig(
+        "启用数据缓存",
+        "启用后，所有API数据（基础信息、角色信息、深渊等）都会被缓存到本地用于网络故障时兜底，每1000用户大约额外占用1GB空间。禁用则每次都从API获取最新数据",
+        False,
+    ),
 }

@@ -18,6 +18,7 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.image_tools import crop_center_img
 from gsuid_core.utils.image.utils import sget
 
+from ..wutheringwaves_config.wutheringwaves_config import ShowConfig
 from ..utils.resource.RESOURCE_PATH import (
     AVATAR_PATH,
     CUSTOM_CARD_PATH,
@@ -264,6 +265,23 @@ def get_waves_bg(w: int, h: int, bg: str = "bg") -> Image.Image:
     img = Image.open(TEXT_PATH / f"{bg}.jpg").convert("RGBA")
     return crop_center_img(img, w, h)
 
+def get_custom_waves_bg( # 不是所有地方都适合替换为custom，函数分开
+    w: int,
+    h: int,
+    bg: str = "bg",
+):
+    img: Optional[Image.Image] = None
+    if ShowConfig.get_config("CardBg").data:
+        bg_path = Path(ShowConfig.get_config("CardBgPath").data)
+        if bg_path.exists():
+            img = Image.open(bg_path).convert("RGBA")
+            img = crop_center_img(img, w, h)
+
+    if not img:
+        img = get_waves_bg(w, h, bg)
+
+    img = _get_custom_gaussian_blur(img)
+    return img
 
 def get_crop_waves_bg(w: int, h: int, bg: str = "bg") -> Image.Image:
     img = Image.open(TEXT_PATH / f"{bg}.jpg").convert("RGBA")
@@ -510,6 +528,9 @@ async def pic_download_from_url(
 
 
 async def get_custom_gaussian_blur(img: Image.Image) -> Image.Image:
+    return _get_custom_gaussian_blur(img)
+
+def _get_custom_gaussian_blur(img: Image.Image) -> Image.Image:
     from ..wutheringwaves_config.wutheringwaves_config import ShowConfig
 
     radius = ShowConfig.get_config("BlurRadius").data

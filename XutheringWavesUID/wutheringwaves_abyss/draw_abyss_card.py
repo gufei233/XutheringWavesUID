@@ -27,7 +27,7 @@ from ..utils.fonts.waves_fonts import (
     waves_font_42,
 )
 from ..utils.hint import error_reply
-from ..utils.image import GOLD, GREY, add_footer, get_waves_bg
+from ..utils.image import GOLD, GREY, add_footer, get_custom_waves_bg
 from ..utils.imagetool import draw_pic, draw_pic_with_ring
 from ..utils.queues.const import QUEUE_ABYSS_RECORD
 from ..utils.queues.queues import push_item
@@ -145,7 +145,7 @@ async def draw_abyss_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
     )
 
     h = frameHigh + 220
-    card_img = get_waves_bg(950, h, "bg4")
+    card_img = get_custom_waves_bg(950, h, "bg4")
 
     # 基础信息 名字 特征码
     base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")

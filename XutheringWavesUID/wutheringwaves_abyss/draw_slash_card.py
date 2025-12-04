@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from typing import Union
 
@@ -377,8 +378,12 @@ async def save_slash_record(
         path = _dir / "slashData.json"
 
         slash_dict = slash_data.model_dump()
+        record_payload = {
+            "record_time": int(time.time()),
+            "slash_data": slash_dict,
+        }
         async with aiofiles.open(path, "w", encoding="utf-8") as file:
-            await file.write(json.dumps(slash_dict, ensure_ascii=False))
+            await file.write(json.dumps(record_payload, ensure_ascii=False))
     except Exception as e:
         logger.warning(f"[保存无尽数据失败] uid={uid}, error={e}")
 

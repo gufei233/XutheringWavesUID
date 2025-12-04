@@ -56,7 +56,9 @@ class WavesEchoRank(BaseModel):
     phantom: EquipPhantom  # 声骸
 
 
-async def get_draw_list(ev: Event, uid: str, user_id: str) -> Union[str, bytes]:
+async def get_draw_list(
+    ev: Event, uid: str, user_id: str, page: int = 1
+) -> Union[str, bytes]:
     _, ck = await waves_api.get_ck_result(uid, user_id, ev.bot_id)
     if not ck:
         return hint.error_reply(WAVES_CODE_102)
@@ -130,8 +132,21 @@ async def get_draw_list(ev: Event, uid: str, user_id: str) -> Union[str, bytes]:
 
     waves_echo_rank.sort(key=lambda i: (i.score, i.roleId), reverse=True)
 
+    page_size = 20
+    total_count = len(waves_echo_rank)
+    max_page_by_total = (total_count + page_size - 1) // page_size
+    max_page = max(1, min(5, max_page_by_total))
+    if page > max_page:
+        page = max_page
+    elif page < 1:
+        page = 1
+    start_index = (page - 1) * page_size
+    end_index = min(start_index + page_size, total_count)
+    waves_echo_rank_page = waves_echo_rank[start_index:end_index]
+
     # img = get_waves_bg(1200, 2650, 'bg3')
     img = get_waves_bg(1600, 3230, "bg3")
+    img_draw = ImageDraw.Draw(img)
 
     # 头像部分
     avatar, avatar_ring = await draw_pic_with_ring(ev)
@@ -147,6 +162,15 @@ async def get_draw_list(ev: Event, uid: str, user_id: str) -> Union[str, bytes]:
         (226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm"
     )
     img.paste(base_info_bg, (35, -30), base_info_bg)
+
+    if page > 1:
+        img_draw.text(
+            (1480, 80),
+            f"第{page}/{max_page}页",
+            GREY,
+            waves_font_26,
+            "rm",
+        )
 
     if account_info.is_full:
         title_bar = Image.open(TEXT_PATH / "title_bar.png")
@@ -169,7 +193,7 @@ async def get_draw_list(ev: Event, uid: str, user_id: str) -> Union[str, bytes]:
 
     promote_icon = Image.open(TEXT_PATH / "promote_icon.png")
     promote_icon = promote_icon.resize((30, 30))
-    for index, _echo in enumerate(waves_echo_rank[:20]):
+    for index, _echo in enumerate(waves_echo_rank_page):
         sh_bg = _sh_bg.copy()
         head_high = 50
         sh_temp = Image.new("RGBA", (350, 550 + head_high))

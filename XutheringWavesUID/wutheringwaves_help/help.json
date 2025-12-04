@@ -111,7 +111,7 @@
       {
         "name": "查询声骸列表",
         "desc": "查询声骸列表",
-        "eg": "声骸列表",
+        "eg": "声骸列表1",
         "need_ck": true,
         "need_sk": false,
         "need_admin": false
@@ -268,7 +268,7 @@
       {
         "name": "冥歌海墟",
         "desc": "查询冥歌海墟",
-        "eg": "mh/冥歌海墟",
+        "eg": "hx/冥歌海墟",
         "need_ck": true,
         "need_sk": false,
         "need_admin": false
@@ -329,7 +329,7 @@
       {
         "name": "练度总排行",
         "desc": "练度总排行",
-        "eg": "练度总排行",
+        "eg": "练度总排行1",
         "need_ck": false,
         "need_sk": false,
         "need_admin": false
@@ -345,7 +345,7 @@
       {
         "name": "海墟无尽总排行",
         "desc": "海墟无尽总排行",
-        "eg": "无尽总排行",
+        "eg": "无尽总排行1",
         "need_ck": false,
         "need_sk": false,
         "need_admin": false
@@ -367,7 +367,15 @@
         "name": "导入抽卡链接",
         "desc": "导入抽卡链接",
         "eg": "导入抽卡链接 https://...record_id=5e4d436ea1",
-        "need_ck": false,
+        "need_ck": true,
+        "need_sk": false,
+        "need_admin": false
+      },
+      {
+        "name": "导入工坊抽卡链接",
+        "desc": "导入工坊抽卡链接",
+        "eg": "导入抽卡链接 uid",
+        "need_ck": true,
         "need_sk": false,
         "need_admin": false
       },

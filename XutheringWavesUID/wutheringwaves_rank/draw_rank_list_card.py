@@ -271,7 +271,7 @@ async def get_all_rank_list_info(
     return rankInfoList
 
 
-async def draw_rank_list(bot: Bot, ev: Event, pages: int = 1, threshold: int = 175) -> Union[str, bytes]:
+async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str, bytes]:
     start_time = time.time()
     logger.info(f"[draw_practice_rank_list] start: {start_time}")
 

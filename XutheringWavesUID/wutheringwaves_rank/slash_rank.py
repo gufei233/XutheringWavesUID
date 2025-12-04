@@ -1,31 +1,35 @@
-import asyncio
+import re
 import copy
 import json
-import re
 import time
+import asyncio
 from pathlib import Path
 from typing import List, Optional
+from datetime import datetime, timezone, timedelta
 
-import aiofiles
 import httpx
-from PIL import Image, ImageDraw
-
+import aiofiles
 from gsuid_core.bot import Bot
-from gsuid_core.logger import logger
+from PIL import Image, ImageDraw
 from gsuid_core.models import Event
+from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
+from ..utils.cache import TimedCache
+from ..utils.util import get_version
 from ..utils.api.model import SlashDetail
+from ..utils.database.models import WavesBind
+from ..utils.ascension.char import get_char_model
+from ..utils.resource.RESOURCE_PATH import SLASH_PATH
+from ..wutheringwaves_abyss.draw_slash_card import COLOR_QUALITY
+from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..utils.api.wwapi import (
     GET_SLASH_RANK_URL,
     SlashRank,
-    SlashRankItem,
     SlashRankRes,
+    SlashRankItem,
 )
-from ..utils.ascension.char import get_char_model
-from ..utils.cache import TimedCache
-from ..utils.database.models import WavesBind
 from ..utils.fonts.waves_fonts import (
     waves_font_12,
     waves_font_16,
@@ -36,26 +40,22 @@ from ..utils.fonts.waves_fonts import (
     waves_font_58,
 )
 from ..utils.image import (
-    AMBER,
     RED,
+    AMBER,
+    WAVES_VOID,
+    WAVES_MOLTEN,
+    WAVES_SIERRA,
+    WAVES_MOONLIT,
     WAVES_FREEZING,
     WAVES_LINGERING,
-    WAVES_MOLTEN,
-    WAVES_MOONLIT,
-    WAVES_SIERRA,
-    WAVES_VOID,
-    add_footer,
+    GREY,
     get_ICON,
+    add_footer,
+    get_waves_bg,
     get_qq_avatar,
     get_square_avatar,
-    get_waves_bg,
     pic_download_from_url,
 )
-from ..utils.resource.RESOURCE_PATH import SLASH_PATH
-from ..utils.util import get_version
-from ..utils.waves_api import waves_api
-from ..wutheringwaves_abyss.draw_slash_card import COLOR_QUALITY
-from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 
 
 async def get_endless_rank_token_condition(ev):
@@ -95,6 +95,77 @@ BOT_COLOR = [
     WAVES_LINGERING,
     WAVES_MOONLIT,
 ]
+
+CHINA_TZ = timezone(timedelta(hours=8))
+ENDLESS_BASE_TIME = datetime(2025, 11, 24, 4, 0, 0, tzinfo=CHINA_TZ)
+ENDLESS_BASE_TIMESTAMP = int(ENDLESS_BASE_TIME.astimezone(timezone.utc).timestamp())
+ENDLESS_REFRESH_SECONDS = 28 * 24 * 60 * 60
+ENDLESS_BASE_PERIOD = 11
+
+def get_current_endless_cycle_start(reference_time: Optional[datetime] = None) -> datetime:
+    now = reference_time or datetime.now(CHINA_TZ)
+    if now <= ENDLESS_BASE_TIME:
+        return ENDLESS_BASE_TIME
+
+    elapsed_seconds = int((now - ENDLESS_BASE_TIME).total_seconds())
+    cycles = elapsed_seconds // ENDLESS_REFRESH_SECONDS
+    return ENDLESS_BASE_TIME + timedelta(seconds=cycles * ENDLESS_REFRESH_SECONDS)
+
+
+def is_endless_record_expired(
+    record_timestamp: Optional[int],
+    reference_time: Optional[datetime] = None,
+) -> bool:
+    now = reference_time or datetime.now(CHINA_TZ)
+    if now <= ENDLESS_BASE_TIME:
+        return False
+
+    if record_timestamp is None:
+        return True
+
+    try:
+        record_ts = int(record_timestamp)
+    except (TypeError, ValueError):
+        return True
+
+    record_time = datetime.fromtimestamp(record_ts, tz=timezone.utc).astimezone(CHINA_TZ)
+    if record_time < ENDLESS_BASE_TIME:
+        return True
+
+    cycle_start = get_current_endless_cycle_start(now)
+    return record_time < cycle_start
+
+
+def get_endless_period_number(reference_time: Optional[datetime] = None) -> int:
+    ref_time = reference_time or datetime.now(CHINA_TZ)
+    if ref_time < ENDLESS_BASE_TIME:
+        return ENDLESS_BASE_PERIOD
+
+    elapsed_seconds = int((ref_time - ENDLESS_BASE_TIME).total_seconds())
+    cycles = elapsed_seconds // ENDLESS_REFRESH_SECONDS
+    return ENDLESS_BASE_PERIOD + cycles
+
+
+def parse_rank_date(date_str: str) -> Optional[datetime]:
+    if not date_str:
+        return None
+
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%d %H:%M:%S"):
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            return dt.replace(tzinfo=CHINA_TZ)
+        except ValueError:
+            continue
+
+    try:
+        dt = datetime.fromisoformat(date_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=CHINA_TZ)
+        else:
+            dt = dt.astimezone(CHINA_TZ)
+        return dt
+    except ValueError:
+        return None
 
 
 def get_score_color(score: int):
@@ -190,6 +261,19 @@ async def draw_all_slash_rank_card(bot: Bot, ev: Event):
     title_text = "#无尽总排行"
     title_bg_draw = ImageDraw.Draw(title_bg)
     title_bg_draw.text((220, 290), title_text, "white", waves_font_58, "lm")
+    period_label = None
+    if rankInfoList.data and rankInfoList.data.start_date:
+        rank_dt = parse_rank_date(rankInfoList.data.start_date)
+        if rank_dt:
+            period_label = f"第{get_endless_period_number(rank_dt)}期"
+    if period_label:
+        title_bg_draw.text(
+            (225, 360),
+            period_label,
+            GREY,
+            waves_font_20,
+            "lm",
+        )
 
     # 遮罩
     char_mask = Image.open(TEXT_PATH / "char_mask.png").convert("RGBA")
@@ -435,10 +519,25 @@ async def get_all_slash_rank_info(
                 if not slash_data_path.exists():
                     continue
 
-                async with aiofiles.open(slash_data_path, mode="r", encoding="utf-8") as f:
-                    slash_data = json.loads(await f.read())
+                async with aiofiles.open(
+                    slash_data_path, mode="r", encoding="utf-8"
+                ) as f:
+                    slash_raw = json.loads(await f.read())
 
-                if not slash_data or not slash_data.get("isUnlock", False):
+                record_time = None
+                slash_data = slash_raw
+                if isinstance(slash_raw, dict) and "slash_data" in slash_raw:
+                    record_time = slash_raw.get("record_time", ENDLESS_BASE_TIMESTAMP)
+                    slash_data = slash_raw.get("slash_data")
+
+                if not isinstance(slash_data, dict) or not slash_data:
+                    continue
+
+                if is_endless_record_expired(record_time):
+                    logger.debug(f"用户{uid}无尽数据已过期，跳过")
+                    continue
+
+                if not slash_data.get("isUnlock", False):
                     continue
 
                 slash_data = SlashDetail.model_validate(slash_data)
@@ -593,6 +692,13 @@ async def draw_slash_rank_list(bot: Bot, ev: Event):
     title_text = "#无尽群排行"
     title_bg_draw = ImageDraw.Draw(title_bg)
     title_bg_draw.text((220, 290), title_text, "white", waves_font_58, "lm")
+    title_bg_draw.text(
+        (225, 360),
+        f"第{get_endless_period_number()}期",
+        GREY,
+        waves_font_20,
+        "lm",
+    )
 
     # 遮罩
     char_mask = Image.open(TEXT_PATH / "char_mask.png").convert("RGBA")

@@ -70,17 +70,29 @@ async def send_all_rank_card(bot: Bot, ev: Event):
         await bot.send(im)
 
 
-@sv_waves_rank_total_list.on_command(("练度总排行", "练度总排名"), block=True)
+@sv_waves_rank_total_list.on_regex(r"^(练度总排行|练度总排名)(?P<pages>\d+)?$", block=True)
 async def send_total_rank_card(bot: Bot, ev: Event):
 
-    pages = 1
+    pages = ev.regex_dict.get("pages")
+
+    if pages:
+        pages = int(pages)
+    else:
+        pages = 1
+
+    if pages > 5:
+        pages = 5
+    elif pages < 1:
+        pages = 1
+
     im = await draw_total_rank(bot, ev, pages)
     await bot.send(im)
 
 
 @sv_waves_rank_local_list.on_command(("练度排行", "群练度排行", "练度群排行", "练度排名", "群练度排名", "练度群排名"), block=True)
 async def send_rank_list_card(bot: Bot, ev: Event):
-
-    pages = 1
-    im = await draw_rank_list(bot, ev, pages)
+    if not ev.group_id:
+        return await bot.send("请在群聊中使用")
+    
+    im = await draw_rank_list(bot, ev)
     await bot.send(im)

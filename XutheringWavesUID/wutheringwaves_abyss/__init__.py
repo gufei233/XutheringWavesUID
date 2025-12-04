@@ -147,6 +147,8 @@ async def send_waves_rank_slash_info(bot: Bot, ev: Event):
     block=True,
 )
 async def send_waves_rank_slash_list_info(bot: Bot, ev: Event):
+    if not ev.group_id:
+        return await bot.send("请在群聊中使用")
     from ..wutheringwaves_rank.slash_rank import draw_slash_rank_list
 
     im = await draw_slash_rank_list(bot, ev)

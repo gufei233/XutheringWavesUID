@@ -83,9 +83,6 @@ async def get_gacha_log_by_link(bot: Bot, ev: Event):
             latest_data = await fetch_mcgf_data(target_uid)
             if not latest_data:
                 return await bot.send("获取工坊数据失败或数据为空")
-            
-            if "data" not in latest_data or "uid" not in latest_data["data"]:
-                return await bot.send("获取失败！")
 
             export_res = await export_gachalogs(uid)
             original_data = {"info": {}, "list": []}
@@ -94,13 +91,16 @@ async def get_gacha_log_by_link(bot: Bot, ev: Event):
                 import aiofiles
                 async with aiofiles.open(export_res["url"], "r", encoding="utf-8") as f:
                     original_data = json.loads(await f.read())
+                    
+            if len(original_data.get("list", [])) == 0:
+                return await bot.send("当前无抽卡记录，无法合并，请先导入抽卡记录后再尝试合并！")
             
             # 合并数据
             merged_data = await asyncio.to_thread(merge_gacha_data, original_data, latest_data)
             
             # 导入合并后的数据
             merged_json_str = json.dumps(merged_data, ensure_ascii=False)
-            im = await import_gachalogs(ev, merged_json_str, "json", uid)
+            im = await import_gachalogs(ev, merged_json_str, "json", uid, force_overwrite=True)
             return await bot.send(im)
             
         except Exception as e:

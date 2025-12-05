@@ -139,9 +139,10 @@ async def get_gacha_stats(uid: str) -> Dict:
     _dir = PLAYER_PATH / str(uid)
     _dir.mkdir(parents=True, exist_ok=True)
 
+    gacha_log_path = _dir / "gacha_logs.json"
     stats_path = _dir / "gachaStats.json"
     # 如果统计文件存在，直接读取
-    if stats_path.exists():
+    if gacha_log_path.exists() and stats_path.exists():
         try:
             async with aiofiles.open(stats_path, "r", encoding="utf-8") as f:
                 return json.loads(await f.read())
@@ -149,7 +150,6 @@ async def get_gacha_stats(uid: str) -> Dict:
             pass
 
     # 否则从 gacha_logs.json 计算
-    gacha_log_path = _dir / "gacha_logs.json"
     if not gacha_log_path.exists():
         return {}
 

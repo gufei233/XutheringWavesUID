@@ -29,6 +29,21 @@ FILLER_ITEM = {
     "count": 1
 }
 
+
+def _time_to_timestamp(time_str: str) -> float:
+    if not time_str:
+        return float('-inf')
+    try:
+        return datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S").timestamp()
+    except ValueError:
+        return float('-inf')
+
+
+def _sort_key_by_time(item: dict, idx_field: str = "_internal_idx"):
+    ts = _time_to_timestamp(item.get("time", ""))
+    order_idx = item.get(idx_field, float('inf'))
+    return (-ts, order_idx)
+
 def generate_random_string(length, chars):
     return ''.join(random.choice(chars) for _ in range(length))
 
@@ -49,7 +64,7 @@ def get_timestamp_minus_1s(time_str):
         return time_str
 
 async def fetch_mcgf_data(uid: str):
-    logger.info(f"[GachaHandler] 开始获取数据 UID: {uid}")
+    logger.debug(f"[GachaHandler] 开始获取工坊数据 UID: {uid}")
     url = "https://api3.sanyueqi.cn/api/v2/game_user/get_sr_draw_v3"
     current_time_ms = str(int(time.time() * 1000))
     random_union_id = generate_union_id()
@@ -84,20 +99,22 @@ async def fetch_mcgf_data(uid: str):
             async with session.get(url, params=params, headers=headers, timeout=30) as response:
                 if response.status == 200:
                     data = await response.json()
-                    logger.success(f"[GachaHandler] 获取数据成功 UID: {uid}")
-                    return data
+                    if data.get("data", {}).get("uid"):
+                        logger.success(f"[GachaHandler] 获取工坊数据成功 UID: {uid}")
+                        return data
+                    else:
+                        logger.warning(f"[GachaHandler] 获取工坊数据失败 UID: {uid} 返回数据异常：{str(data)[:500]}")
                 else:
-                    logger.warning(f"[GachaHandler] 获取数据失败 Status: {response.status}")
+                    logger.warning(f"[GachaHandler] 获取工坊数据失败 Status: {response.status}")
     except Exception as e:
-        logger.error(f"[GachaHandler] 获取三月七数据发生异常: {e}")
+        logger.error(f"[GachaHandler] 获取工坊数据发生异常: {e}")
         logger.error(traceback.format_exc())
     return None
 
 def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
-    logger.info("[GachaHandler] 开始合并抽卡记录...")
+    logger.debug("[GachaHandler] 开始合并抽卡记录...")
     
     export_info = original_data.get('info', {})
-    # 如果 info 为空，则根据 latest_data 重建
     if not export_info:
         uid = latest_data.get('data', {}).get('uid')
         if uid:
@@ -110,12 +127,15 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                 "version": "v2.0",
                 "uid": str(uid)
             }
-            logger.info(f"[GachaHandler] 本地记录为空，已重建 info 信息 (UID: {uid})")
+            logger.debug(f"[GachaHandler] 本地记录为空，已重建 info 信息 (UID: {uid})")
         else:
             logger.warning("[GachaHandler] 无法获取 UID，info 信息可能不完整")
 
     original_list = original_data.get('list', [])
     
+    for idx, item in enumerate(original_list):
+        item['_internal_idx'] = idx
+
     latest_5stars = []
     card_analysis = latest_data.get('data', {}).get('card_analysis_json', {})
     
@@ -150,7 +170,7 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                 extract_five_cards(item)
                 
     extract_five_cards(card_analysis)
-    logger.info(f"[GachaHandler] 解析出最新五星记录 {len(latest_5stars)} 条")
+    logger.debug(f"[GachaHandler] 解析出最新五星记录 {len(latest_5stars)} 条")
     
     orig_types = [str(x.get('cardPoolType')) for x in original_list if x.get('cardPoolType')]
     latest_types = [str(x.get('cardPoolType')) for x in latest_5stars if x.get('cardPoolType')]
@@ -160,15 +180,23 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
     merged_list = []
     
     for pool_id in sorted(list(all_pools)):
-        O_all = sorted([x for x in original_list if str(x.get('cardPoolType')) == str(pool_id)], key=lambda x: x.get('time', ''))
-        L_5s = sorted([x for x in latest_5stars if str(x.get('cardPoolType')) == str(pool_id)], key=lambda x: x.get('time', ''))
+        O_all = sorted(
+            [x for x in original_list if str(x.get('cardPoolType')) == str(pool_id)],
+            key=_sort_key_by_time,
+        )
+        O_all.reverse()
+        L_5s = sorted(
+            [x for x in latest_5stars if str(x.get('cardPoolType')) == str(pool_id)],
+            key=_sort_key_by_time,
+        )
+        L_5s.reverse()
         
         O_5s = [x for x in O_all if x.get('qualityLevel') == 5]
         
         pool_merged_items = []
         
         if not O_5s:
-            logger.info(f"[GachaHandler] Pool {pool_id}: 无本地五星记录，重建所有历史")
+            logger.debug(f"[GachaHandler] Pool {pool_id}: 无本地五星记录，重建所有历史")
             for cp in L_5s:
                 filler_count = cp['draw_total'] - 1
                 filler_time = get_timestamp_minus_1s(cp['time'])
@@ -191,7 +219,7 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
             
         else:
             x = O_5s[0]
-            logger.info(f"[GachaHandler] Pool {pool_id}: 最早本地五星为 {x.get('name')} ({x.get('time')})")
+            logger.debug(f"[GachaHandler] Pool {pool_id}: 最早本地五星为 {x.get('name')} ({x.get('time')})")
             
             match_idx = None
             for i, cand in enumerate(L_5s):
@@ -231,7 +259,7 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                 pool_merged_items.extend(O_all)
             
             else:
-                logger.info(f"[GachaHandler] Pool {pool_id}: 在索引 {match_idx} 处对其，重建之前历史")
+                logger.debug(f"[GachaHandler] Pool {pool_id}: 在索引 {match_idx} 处对其，重建之前历史")
                 for i in range(match_idx):
                     cp = L_5s[i]
                     filler_count = cp['draw_total'] - 1
@@ -255,8 +283,10 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                 cp_x = L_5s[match_idx]
                 
                 items_before_x = []
+                target_internal_idx = x.get('_internal_idx', -1)
+                
                 for item in O_all:
-                    if item['time'] == x['time'] and item['name'] == x['name']:
+                    if item.get('_internal_idx', -2) == target_internal_idx:
                         break 
                     items_before_x.append(item)
                 
@@ -264,7 +294,7 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                 target_count = cp_x['draw_total'] - 1
                 
                 diff = target_count - count_existing
-                logger.info(f"[GachaHandler] Pool {pool_id}: 连接点需填充 {diff} (目标 {target_count} - 现有 {count_existing})")
+                logger.debug(f"[GachaHandler] Pool {pool_id}: 连接点需填充 {diff} (目标 {target_count} - 现有 {count_existing})")
                 
                 if diff > 0:
                     filler_time = get_timestamp_minus_1s(x['time'])
@@ -280,7 +310,10 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
 
         merged_list.extend(pool_merged_items)
 
-    merged_list.sort(key=lambda x: x.get('time', ''), reverse=True)
+    merged_list.sort(key=_sort_key_by_time)
+    for item in merged_list:
+        if '_internal_idx' in item:
+            del item['_internal_idx']
     logger.success(f"[GachaHandler] 合并完成，共 {len(merged_list)} 条记录")
     
     return {

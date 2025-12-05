@@ -372,9 +372,9 @@
         "need_admin": false
       },
       {
-        "name": "导入工坊抽卡链接",
-        "desc": "导入工坊抽卡链接",
-        "eg": "导入抽卡链接 uid",
+        "name": "导入工坊抽卡记录",
+        "desc": "导入工坊抽卡记录",
+        "eg": "导入抽卡记录 uid",
         "need_ck": true,
         "need_sk": false,
         "need_admin": false
@@ -618,6 +618,22 @@
         "name": "添加/删除角色别名",
         "desc": "添加/删除角色别名",
         "eg": "添加油壶别名杂鱼",
+        "need_ck": false,
+        "need_sk": false,
+        "need_admin": true
+      },
+      {
+        "name": "删除抽卡记录",
+        "desc": "删除抽卡记录",
+        "eg": "删除抽卡记录uid",
+        "need_ck": false,
+        "need_sk": false,
+        "need_admin": true
+      },
+      {
+        "name": "删除导入记录",
+        "desc": "删除导入记录",
+        "eg": "删除导入记录",
         "need_ck": false,
         "need_sk": false,
         "need_admin": true

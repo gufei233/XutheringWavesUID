@@ -194,14 +194,14 @@ async def draw_sonata_list():
         name = data.get("name", "未知套装")
         set_list = data.get("set", {})
         # 按名称字数分组
-        word_count = len(name)
-        sonata_groups[word_count].append({
+        from_version = data.get("version", "10.0")
+        sonata_groups[from_version].append({
             "name": name,
             "set": set_list
         })
     
     # 按字数从小到大排序
-    sorted_groups = sorted(sonata_groups.items(), key=lambda x: x[0])
+    sorted_groups = sorted(sonata_groups.items(), key=lambda x: float(x[0]))
     
     # 创建背景图（高度暂定，后面会调整）
     img = get_waves_bg(900, 3000, "bg6")
@@ -221,7 +221,7 @@ async def draw_sonata_list():
     y_offset += 20
     
     # 按字数从小到大遍历所有分组
-    for word_count, sonatas in sorted_groups:
+    for _, sonatas in sorted_groups:
         # 对组内套装按名称排序
         sonatas.sort(key=lambda x: x["name"])
         

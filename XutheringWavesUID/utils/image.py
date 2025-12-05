@@ -248,16 +248,18 @@ async def get_attribute(name: str = "", is_simple: bool = False) -> Image.Image:
 
 
 async def get_attribute_prop(name: str = "") -> Image.Image:
-    return Image.open(TEXT_PATH / f"attribute_prop/attr_prop_{name}.png").convert(
-        "RGBA"
-    )
-
+    if not (TEXT_PATH / "attribute_prop" / f"attr_prop_{name}.png").exists():
+        return Image.open(TEXT_PATH / "attribute_prop" / f"attr_prop_{name}.png").convert("RGBA")
+    else:
+        return Image.open(TEXT_PATH / "attribute_prop" / "attr_prop_攻击.png").convert("RGBA")
 
 async def get_attribute_effect(name: str = "") -> Image.Image:
-    return Image.open(TEXT_PATH / f"attribute_effect/attr_{name}.png").convert("RGBA")
+    if (TEXT_PATH / "attribute_effect" / f"attr_{name}.png").exists():
+        return Image.open(TEXT_PATH / "attribute_effect" / f"attr_{name}.png").convert("RGBA")
+    else:
+        return Image.open(TEXT_PATH / "attribute_effect" / "attr_不绝余音.png").convert("RGBA")
 
-
-async def get_weapon_type(name: str = "") -> Image.Image:
+async def get_weapon_type(name: str = "") -> Image.Image: # 出新武器改这里
     return Image.open(TEXT_PATH / f"weapon_type/weapon_type_{name}.png").convert("RGBA")
 
 

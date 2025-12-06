@@ -12,13 +12,14 @@ from ..utils.button import WavesButton
 from ..utils.database.models import WavesBind, WavesUser
 from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..wutheringwaves_user.login_succ import login_success_msg
-from .deal import add_cookie, delete_cookie, get_cookie
+from .deal import add_cookie, delete_cookie, get_cookie, refresh_bind
 
 waves_bind_uid = SV("鸣潮绑定特征码", priority=10)
 waves_add_ck = SV("鸣潮添加token", priority=5)
 waves_del_ck = SV("鸣潮删除token", priority=5)
 waves_get_ck = SV("waves获取ck", area="DIRECT")
 waves_del_all_invalid_ck = SV("鸣潮删除无效token", priority=1, pm=1)
+waves_refresh_bind = SV("waves刷新绑定", priority=5)
 
 
 def get_ck_and_devcode(text: str, split_str: str = ",") -> tuple[str, str]:
@@ -94,6 +95,13 @@ async def send_waves_del_ck_msg(bot: Bot, ev: Event):
 )
 async def send_waves_get_ck_msg(bot: Bot, ev: Event):
     await bot.send(await get_cookie(bot, ev))
+
+
+@waves_refresh_bind.on_fullmatch(("刷新绑定"), block=True)
+async def send_waves_refresh_bind_msg(bot: Bot, ev: Event):
+    at_sender = True if ev.group_id else False
+    msg = await refresh_bind(ev)
+    await bot.send(msg, at_sender)
 
 
 @waves_del_all_invalid_ck.on_fullmatch(("删除无效token"), block=True)

@@ -27,7 +27,7 @@ from .api import (
     EXPLORE_DATA_URL,
     GACHA_LOG_URL,
     GACHA_NET_LOG_URL,
-    GAME_ID,
+    WAVES_GAME_ID,
     LOGIN_LOG_URL,
     LOGIN_URL,
     MONTH_LIST_URL,
@@ -237,7 +237,7 @@ class WavesApi:
         if len(ck_list) > 0:
             return random.choices(ck_list, k=1)[0]
 
-    async def get_kuro_role_list(self, token: str, did: str):
+    async def get_kuro_role_list(self, token: str, did: str, game_id: Union[int, str] = WAVES_GAME_ID):
         header = await get_base_header()
         header.update(
             {
@@ -245,12 +245,12 @@ class WavesApi:
                 "devCode": did,
             }
         )
-        data = {"gameId": GAME_ID}
+        data = {"gameId": game_id}
 
         return await self._waves_request(ROLE_LIST_URL, "POST", header, data=data)
 
     async def get_daily_info(
-        self, roleId: str, token: str, gameId: Union[str, int] = GAME_ID
+        self, roleId: str, token: str, gameId: Union[str, int] = WAVES_GAME_ID
     ):
         """每日"""
         header = await get_base_header()
@@ -280,7 +280,7 @@ class WavesApi:
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
         header.update(used_headers)
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -309,7 +309,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -337,7 +337,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -377,7 +377,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
             "channelId": "19",
@@ -409,7 +409,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -442,7 +442,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
             "countryCode": countryCode,
@@ -472,7 +472,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -500,7 +500,7 @@ class WavesApi:
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
         header.update(used_headers)
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -529,7 +529,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -558,7 +558,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -587,7 +587,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -616,7 +616,7 @@ class WavesApi:
         header.update(used_headers)
 
         data = {
-            "gameId": GAME_ID,
+            "gameId": WAVES_GAME_ID,
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
@@ -821,7 +821,7 @@ class WavesApi:
         self, eventType: str = "", pageSize: Optional[int] = None
     ):
         """获取公告列表"""
-        data: Dict[str, Any] = {"gameId": GAME_ID}
+        data: Dict[str, Any] = {"gameId": WAVES_GAME_ID}
         if eventType:
             data.update({"eventType": eventType})
         if pageSize:

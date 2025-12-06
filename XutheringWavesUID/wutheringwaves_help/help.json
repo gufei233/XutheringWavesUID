@@ -27,16 +27,16 @@
         "need_admin": false
       },
       {
-        "name": "查看特征码列表",
-        "desc": "查看特征码列表",
-        "eg": "查看",
+        "name": "查看或刷新特征码列表",
+        "desc": "查看或刷新特征码列表",
+        "eg": "查看 or 刷新绑定",
         "need_ck": false,
         "need_sk": false,
         "need_admin": false
       },
       {
         "name": "删除全部特征码",
-        "desc": "查看绑定的UID列表",
+        "desc": "删除绑定的UID",
         "eg": "删除全部特征码",
         "need_ck": false,
         "need_sk": false,

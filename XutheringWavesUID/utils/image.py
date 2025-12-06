@@ -248,7 +248,7 @@ async def get_attribute(name: str = "", is_simple: bool = False) -> Image.Image:
 
 
 async def get_attribute_prop(name: str = "") -> Image.Image:
-    if not (TEXT_PATH / "attribute_prop" / f"attr_prop_{name}.png").exists():
+    if (TEXT_PATH / "attribute_prop" / f"attr_prop_{name}.png").exists():
         return Image.open(TEXT_PATH / "attribute_prop" / f"attr_prop_{name}.png").convert("RGBA")
     else:
         return Image.open(TEXT_PATH / "attribute_prop" / "attr_prop_攻击.png").convert("RGBA")
